@@ -4960,19 +4960,15 @@ end
                         Callback = function()
                             local Value = Library.SelectedTheme
                             if Themes[Value] then
-                                -- Atualiza a tabela de tema global
                                 Library.Theme = Themes[Value]
-                                
-                                -- Força a atualização de todos os elementos registrados no sistema de temas
                                 for ThemeKey, ColorValue in pairs(Library.Theme) do
                                     Library:ChangeTheme(ThemeKey, ColorValue)
                                 end
-                                
-                                -- Notificação de sucesso
                                 Library:Notification("Theme applied: " .. Value, 3, Library.Theme.Accent)
                             end
                         end
                     })
+
                     for Index, Value in Library.Theme do 
                         ThemingSection:Label({Name = Index}):Colorpicker({
                             Name = Index,
@@ -5023,14 +5019,14 @@ end
                         end
                     })
 
-                                        MenuSection:Toggle({
+                    MenuSection:Toggle({
                         Name = "Animated Title",
                         Default = Library.AnimatedTitle,
                         Callback = function(Value)
                             Library.AnimatedTitle = Value
                         end
                     })
-                    
+
                     MenuSection:Dropdown({
                         Name = "Notification Side",
                         Default = Library.NotificationPosition,
