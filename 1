@@ -827,6 +827,22 @@ local Library = {
     
         return Scale
     end
+
+    Library.SetScale = function(Self, ScaleValue)
+        ScaleValue = tonumber(ScaleValue) or 1
+        local uiScale = nil
+        for _, Obj in Library.Holder.Instance:GetChildren() do
+            if Obj:IsA("UIScale") then
+                uiScale = Obj
+                break
+            end
+        end
+        if not uiScale then
+            uiScale = Instance.new("UIScale")
+            uiScale.Parent = Library.Holder.Instance
+        end
+        uiScale.Scale = ScaleValue
+    end
     
     Library.PopupPosition = function(Self, Anchor, Popup, ExtraY)
         local Scale = Library:GetScreenScale()
@@ -5020,14 +5036,38 @@ end
 
                     if Self.Watermark then
                         MenuSection:Toggle({
-                            Name = "Watermark",
-                            Flag = "Watermark",
+                            Name = "Animated Name",
+                            Flag = "AnimatedName",
                             Default = true,
                             Callback = function(Value)
                                 Self.Watermark:SetVisibility(Value)
                             end
                         })
                     end
+
+                    local ScaleInput = "1"
+                    MenuSection:Textbox({
+                        Name = "UI Scale",
+                        Flag = "UIScaleInput",
+                        Placeholder = "Scale (e.g. 1)",
+                        Default = "1",
+                        Callback = function(Value)
+                            ScaleInput = Value
+                        end
+                    })
+
+                    MenuSection:Button({
+                        Name = "Apply Scale",
+                        Callback = function()
+                            local num = tonumber(ScaleInput)
+                            if num and num > 0 then
+                                Library:SetScale(num)
+                                Library:Notification("Scale set to " .. num, 3, Library.Theme.Accent)
+                            else
+                                Library:Notification("Invalid scale value", 3, Color3.fromRGB(255, 0, 0))
+                            end
+                        end
+                    })
 
                     if Self.KeybindList then 
                         MenuSection:Toggle({
