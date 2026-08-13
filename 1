@@ -1,3 +1,60 @@
+-- Inicialização Global Robusta v14
+getgenv().Library = getgenv().Library or {}
+local Library = getgenv().Library
+
+Library.Flags = Library.Flags or {}
+Library.SetFlags = Library.SetFlags or {}
+Library.ThemingStuff = Library.ThemingStuff or {}
+Library.Connections = Library.Connections or {}
+Library.Threads = Library.Threads or {}
+Library.Notifications = Library.Notifications or {}
+Library.OpenFrames = Library.OpenFrames or {}
+Library.MenuScale = Library.MenuScale or 1
+Library.AnimatedTitle = Library.AnimatedTitle == nil and true or Library.AnimatedTitle
+Library.SelectedTheme = Library.SelectedTheme or "Preset"
+Library.NotificationPosition = Library.NotificationPosition or "Left"
+Library.Directory = Library.Directory or "juanitaaaaaaa"
+Library.FontSize = Library.FontSize or 12
+
+Library.Folders = Library.Folders or {
+    Assets = "/Assets",
+    Configs = "/Configs",
+    Themes = "/Themes"
+}
+
+Library.Animation = Library.Animation or {
+    Time = 0.3,
+    Style = "Quint",
+    Direction = "Out"
+}
+
+Library.TabAnimation = Library.TabAnimation or {
+    Time = 1,
+    Style = "Exponential",
+    Direction = "Out"
+}
+
+Library.ColorpickerAnimation = Library.ColorpickerAnimation or {
+    Time = 0.55,
+    Style = "Exponential",
+    Direction = "Out"
+}
+
+Library.NotifAnimation = Library.NotifAnimation or {
+    Time = 0.85,
+    Style = "Exponential",
+    Direction = "Out"
+}
+
+Library.ZIndexOrder = Library.ZIndexOrder or {
+    ["OptionHolder"] = 4,
+    ["KeybindWindow"] = 4,
+    ["ColorpickerWindow"] = 6
+}
+
+local Flags = Library.Flags
+local SetFlags = Library.SetFlags
+
 --[[
     Code is not as clean as it could be but it works
     
@@ -39,76 +96,11 @@ local IsMobile = UserInputService.TouchEnabled or false
 local GuiInset = GuiService:GetGuiInset().Y
 local Mouse = cloneref(LocalPlayer:GetMouse())
 
-getgenv().Library = { 
-    Flags = { },
-    MenuKeybind = "RightShift", -- agora armazena o nome da tecla (ex: "RightShift")
-
-    Directory = "juanitaaaaaaa",
-    Folders = {
-        Assets = "/Assets",
-        Configs = "/Configs",
-        Themes = "/Themes"
-    },
-
-    FontSize = 12,
-
-    Animation = {
-        Time = 0.3,
-        Style = "Quint",
-        Direction = "Out"
-    },
-
-    TabAnimation = {
-        Time = 1,
-        Style = "Exponential",
-        Direction = "Out"
-    },
-
-    ColorpickerAnimation = {
-        Time = 0.55,
-        Style = "Exponential",
-        Direction = "Out"
-    },
-
-    NotifAnimation = {
-        Time = 0.85,
-        Style = "Exponential",
-        Direction = "Out"
-    },
-
-    ZIndexOrder = {
-        ["OptionHolder"] = 4,
-        ["KeybindWindow"] = 4,
-        ["ColorpickerWindow"] = 6
-    },
-
-    Threads = { },
-    Connections = { },
-    SetFlags = { },
-
-    ThemingStuff = { },
-    ThemeMap = { },
-
-    OpenFrames = { },
-
-    Holder = nil,
-    UnusedHolder = nil,
-
-    Font = nil,
-
-    Notifications = { },
-    KeyList = nil,
-
-    Theme = nil,
-    NotificationPosition = "Left",
-    MenuScale = 1,
-    AnimatedTitle = true,
-    SelectedTheme = "Preset",
-} do 
+do 
     Library.__index = Library
 
-    local Flags = getgenv().Library.Flags 
-    local SetFlags = getgenv().Library.SetFlags
+    -- Flags já definidas globalmente 
+    -- SetFlags já definidas globalmente
 
     local Keys = {
         ["Unknown"]           = "Unknown",
@@ -5156,4 +5148,4 @@ if not Library.Flags["MenuKeybind"] then
     Library.Flags["MenuKeybind"] = { Key = Library.MenuKeybind, Mode = "Toggle", Toggled = false }
 end
 
--- Library já definida como global no início
+-- Library populada com sucesso
