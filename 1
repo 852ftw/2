@@ -39,7 +39,7 @@ local IsMobile = UserInputService.TouchEnabled or false
 local GuiInset = GuiService:GetGuiInset().Y
 local Mouse = cloneref(LocalPlayer:GetMouse())
 
-local Library = { 
+getgenv().Library = { 
     Flags = { },
     MenuKeybind = "RightShift", -- agora armazena o nome da tecla (ex: "RightShift")
 
@@ -107,8 +107,8 @@ local Library = {
 } do 
     Library.__index = Library
 
-    local Flags = Library.Flags 
-    local SetFlags = Library.SetFlags
+    local Flags = getgenv().Library.Flags 
+    local SetFlags = getgenv().Library.SetFlags
 
     local Keys = {
         ["Unknown"]           = "Unknown",
@@ -5156,4 +5156,4 @@ if not Library.Flags["MenuKeybind"] then
     Library.Flags["MenuKeybind"] = { Key = Library.MenuKeybind, Mode = "Toggle", Toggled = false }
 end
 
-getgenv().Library = Library
+-- Library já definida como global no início
