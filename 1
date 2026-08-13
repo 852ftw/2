@@ -317,39 +317,49 @@ do
     Library.Create = function(Self, Class, Properties)
         local Data = {
             Class = Class,
-            Properties = Properties,
+            Properties = Properties or {},
             Instance = Instance.new(Class)
         }
 
-        for Index, Property in Properties do 
-            if Property == "FontFace" then
-                Data.Instance[Property] = Library.Font
+        for Index, Value in pairs(Data.Properties) do
+            if Index == "FontFace" then
+                pcall(function() Data.Instance.FontFace = Library.Font end)
                 continue
             end
 
-            if Property == "TextSize" then 
-                Data.Instance[Property] = Library.FontSize
+            if Index == "TextSize" then
+                pcall(function() Data.Instance.TextSize = Library.FontSize end)
                 continue
             end
 
-            if Property == "Name" then 
-                Data.Instance[Property] = "\0"
+            if Index == "Name" then
+                pcall(function() Data.Instance.Name = "\0" end)
                 continue
             end
 
-            if Class == "TextButton" then 
-                if Property == "AutoButtonColor" then 
-                    Data.Instance[Property] = false
+            if Class == "TextButton" then
+                if Index == "AutoButtonColor" then
+                    pcall(function() Data.Instance.AutoButtonColor = false end)
                     continue
                 end
-
-                if Property == "Text" then 
-                    Data.Instance[Property] = ""
+                if Index == "Text" then
+                    pcall(function() Data.Instance.Text = tostring(Value or "") end)
                     continue
                 end
             end
 
-            Data.Instance[Index] = Property
+            -- Parent last-ish is fine; pcall so CoreGui restrictions don't kill Create
+            local ok, err = pcall(function()
+                Data.Instance[Index] = Value
+            end)
+            if not ok and Index == "Parent" then
+                -- fallback parents for ScreenGui / frames
+                pcall(function()
+                    local lp = game:GetService("Players").LocalPlayer
+                    local pg = lp and (lp:FindFirstChild("PlayerGui") or lp:WaitForChild("PlayerGui", 2))
+                    if pg then Data.Instance.Parent = pg end
+                end)
+            end
         end
 
         return setmetatable(Data, Library)
@@ -799,22 +809,26 @@ do
     end
 
     Library.AddToTheme = function(Self, Properties)
+        if not Self or not Self.Instance then
+            warn("[Library] AddToTheme called with nil Self/Instance")
+            return Self
+        end
         local Object = Self.Instance
 
         local ThemeData = {
             Item = Object,
-            Properties = Properties,
+            Properties = Properties or {},
         }
 
-        for Property, Value in ThemeData.Properties do
+        for Property, Value in pairs(ThemeData.Properties) do
             if type(Value) == "string" then
-                if not Library.Theme[Value] then
-                    Object[Property] = Value 
+                if Library.Theme[Value] then
+                    pcall(function() Object[Property] = Library.Theme[Value] end)
+                else
+                    pcall(function() Object[Property] = Value end)
                 end
-
-                Object[Property] = Library.Theme[Value]
-            else
-                Object[Property] = Value()
+            elseif type(Value) == "function" then
+                pcall(function() Object[Property] = Value() end)
             end
         end
 
@@ -963,8 +977,22 @@ do
         Element:Refresh(ReturnList)
     end
 
+    local function resolveGuiParent()
+        local ok, parent = pcall(function() return gethui() end)
+        if ok and parent then return parent end
+        ok, parent = pcall(function() return game:GetService("CoreGui") end)
+        if ok and parent then return parent end
+        local lp = game:GetService("Players").LocalPlayer
+        if lp then
+            local pg = lp:FindFirstChild("PlayerGui") or lp:WaitForChild("PlayerGui", 3)
+            if pg then return pg end
+        end
+        return game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    end
+    local guiParent = resolveGuiParent()
+
     Library.Holder = Library:Create("ScreenGui", {
-        Parent = gethui(),
+        Parent = guiParent,
         IgnoreGuiInset = true,
         Name = "\0",
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
@@ -972,7 +1000,7 @@ do
     })
 
     Library.NotifHolder = Library:Create("ScreenGui", {
-        Parent = gethui(),
+        Parent = guiParent,
         IgnoreGuiInset = true,
         Name = "\0",
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
@@ -980,12 +1008,16 @@ do
     })
 
     Library.UnusedHolder = Library:Create("ScreenGui", {
-        Parent = gethui(),
+        Parent = guiParent,
         Name = "\0",
         Enabled = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Global,
         ResetOnSpawn = false
     })
+
+    if not Library.Holder or not Library.Holder.Instance then
+        error("[Library] Failed to create Holder ScreenGui — check executor CoreGui/gethui access")
+    end
 
     -- themes (unchanged)
     Library:Thread(function()
