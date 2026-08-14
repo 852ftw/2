@@ -5069,6 +5069,28 @@ end
                             Library.NotificationPosition = Value
                         end
                     })
+
+                    if Self.Watermark then
+                        MenuSection:Toggle({
+                            Name = "Watermark",
+                            Flag = "Watermark",
+                            Default = true,
+                            Callback = function(Value)
+                                Self.Watermark:SetVisibility(Value)
+                            end
+                        })
+                    end
+
+                    if Self.KeybindList then 
+                        MenuSection:Toggle({
+                            Name = "Keybind list",
+                            Flag = "Keybind list",
+                            Default = true,
+                            Callback = function(Value)
+                                Self.KeybindList:SetVisibility(Value)
+                            end
+                        })
+                    end
                 end
 
                 local ProfilesSection = SettingsPage:Section({Name = "Profiles", Side = 3}) do
