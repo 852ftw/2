@@ -2493,22 +2493,65 @@ end
             local Padding = 8
             local Spacing = 8
         
-                        local function UpdatePositions()
-                local ViewportSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+            local function GetNotificationSize(NotificationData)
+                local Size
+                local Ok = pcall(function()
+                    local Item = NotificationData
+                        and NotificationData.Items
+                        and NotificationData.Items["Notification"]
+                    local Object = Item and Item.Instance
+                    Size = Object and Object.AbsoluteSize
+                end)
+
+                if not Ok or not Size then
+                    return nil
+                end
+
+                return Size
+            end
+
+            local function UpdatePositions()
+                local ViewportSize = Vector2.new(1920, 1080)
+                pcall(function()
+                    local CurrentCamera = workspace.CurrentCamera
+                    if CurrentCamera then
+                        ViewportSize = CurrentCamera.ViewportSize
+                    end
+                end)
+
+                local InvalidNotifications = {}
                 for Index, Value in Library.Notifications do
-                    local Height = Value.Items["Notification"].Instance.AbsoluteSize.Y
-                    local Width = Value.Items["Notification"].Instance.AbsoluteSize.X
+                    local Size = GetNotificationSize(Value)
+                    local Item = Value
+                        and Value.Items
+                        and Value.Items["Notification"]
+
+                    if not Size or not Item then
+                        table.insert(InvalidNotifications, Index)
+                        continue
+                    end
+
                     local X = Padding
                     local Y = GuiInset + Padding + 5
                     if Library.NotificationPosition == "Right" then
-                        X = ViewportSize.X - Width - Padding
+                        X = ViewportSize.X - Size.X - Padding
                     end
+
                     for i = 1, Index - 1 do
-                        if Library.Notifications[i] and Library.Notifications[i].Items["Notification"] then
-                            Y += Library.Notifications[i].Items["Notification"].Instance.AbsoluteSize.Y + Spacing
+                        local PreviousSize = GetNotificationSize(Library.Notifications[i])
+                        if PreviousSize then
+                            Y += PreviousSize.Y + Spacing
                         end
                     end
-                    Value.Items["Notification"]:Tween({Position = UDim2.new(0, X, 0, Y)}, NotifTweenInfo)
+
+                    pcall(function()
+                        Item:Tween({Position = UDim2.new(0, X, 0, Y)}, NotifTweenInfo)
+                    end)
+                end
+
+                -- Remove entradas cuja GUI já foi destruída ou não pode ser acessada.
+                for i = #InvalidNotifications, 1, -1 do
+                    table.remove(Library.Notifications, InvalidNotifications[i])
                 end
             end
         
@@ -2649,7 +2692,13 @@ end
                 FadeNotification(1)
         
                 task.delay(NotifTweenInfo.Time, function()
-                    Items["Notification"].Instance:Destroy()
+                    pcall(function()
+                        local Item = Items["Notification"]
+                        local Object = Item and Item.Instance
+                        if Object then
+                            Object:Destroy()
+                        end
+                    end)
                     UpdatePositions()
                 end)
             end)
