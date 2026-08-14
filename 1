@@ -2573,7 +2573,7 @@ end
                     local X = Padding
                     local Y = GuiInset + Padding + 5
                     if Library.NotificationPosition == "Right" then
-                        X = ViewportSize.X - Size.X - Padding
+                        X = ViewportSize.X - Padding
                     end
 
                     for i = 1, Index - 1 do
@@ -2595,12 +2595,13 @@ end
             end
         
             local Items = {} do
+                local isRight = Library.NotificationPosition == "Right"
                 Items["Notification"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Library.NotifHolder.Instance,
                     Size = UDim2.new(0, 0, 0, 25),
-                    AnchorPoint = Vector2.new(0, 0),
-                    Position = UDim2.new(0, -260, 0, GuiInset + Padding + 5),
+                    AnchorPoint = isRight and Vector2.new(1, 0) or Vector2.new(0, 0),
+                    Position = isRight and UDim2.new(0, ViewportSize.X + 260, 0, GuiInset + Padding + 5) or UDim2.new(0, -260, 0, GuiInset + Padding + 5),
                     BorderSizePixel = 0,
                     AutomaticSize = Enum.AutomaticSize.X,
                     BackgroundColor3 = Library.Theme["Inline"]
@@ -2726,7 +2727,16 @@ end
                     end
                 end
         
-                Items["Notification"]:Tween({Position = UDim2.new(0, -(Width + Padding + 20), 0, Items["Notification"].Instance.Position.Y.Offset)}, NotifTweenInfo)
+                local isRight = Library.NotificationPosition == "Right"
+                local ViewportSize = Vector2.new(1920, 1080)
+                pcall(function()
+                    local CurrentCamera = workspace.CurrentCamera
+                    if CurrentCamera then
+                        ViewportSize = CurrentCamera.ViewportSize
+                    end
+                end)
+                local targetX = isRight and (ViewportSize.X + 260) or -(Width + Padding + 20)
+                Items["Notification"]:Tween({Position = UDim2.new(0, targetX, 0, Items["Notification"].Instance.Position.Y.Offset)}, NotifTweenInfo)
 
                 FadeNotification(1)
         
@@ -2946,6 +2956,12 @@ end
             end
 
             Library:Connect(RunService.RenderStepped, function()
+                if Library.AccentRGB then
+                    local hue = (tick() % 5) / 5
+                    local color = Color3.fromHSV(hue, 1, 1)
+                    Library:ChangeTheme("Accent", color)
+                end
+
                 if not Library.AnimatedTitle then 
                     for Index, Value in Letters do 
                         Value.LetterInstance.Instance.Position = UDim2.new(0, Value.X, 0, Value.Y)
@@ -2959,7 +2975,7 @@ end
 
                     Value.LetterInstance.Instance.Position = UDim2.new(0, Value.X, 0, Value.Y + OffsetY)
                 end
-            end)            
+            end)
 
             Window:Center()
             return setmetatable(Window, Library)
@@ -3019,7 +3035,7 @@ end
                     ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0),
                     Active = true,
                     AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                    ScrollBarThickness = 0,
+                    ScrollBarThickness = 2,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1/3, 0, 1, 0),
                     BorderSizePixel = 0,
@@ -3048,7 +3064,7 @@ end
                     ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0),
                     Active = true,
                     AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                    ScrollBarThickness = 0,
+                    ScrollBarThickness = 2,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1/3, 0, 1, 0),
                     BorderSizePixel = 0,
@@ -3077,7 +3093,7 @@ end
                     ScrollBarImageColor3 = Color3.fromRGB(0, 0, 0),
                     Active = true,
                     AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                    ScrollBarThickness = 0,
+                    ScrollBarThickness = 2,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1/3, 0, 1, 0),
                     BorderSizePixel = 0,
@@ -3473,6 +3489,18 @@ end
 
             SetFlags[Toggle.Flag] = function(Value)
                 Toggle:Set(Value)
+            end
+            
+            Library.SetFlags["MenuScale"] = function(Value)
+                local scaleVal = math.clamp(Value / 100, 0.2, 3.0)
+                Library.MenuScale = scaleVal
+                if Library.MenuScaleObject then
+                    Library.MenuScaleObject.Scale = scaleVal
+                end
+            end
+
+            Library.SetFlags["AccentRGB"] = function(Value)
+                Library.AccentRGB = Value
             end
 
             return setmetatable(Toggle, Library)
@@ -4789,7 +4817,8 @@ end
                     Name = "\0",
                     Parent = Parent.Instance,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 12),
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     BorderSizePixel = 0
                 })
                 
@@ -5119,25 +5148,27 @@ end
                         end
                     })
 
-                    local TargetScale = 100
-                    MenuSection:Textbox({
+                    MenuSection:Slider({
                         Name = "Menu Scale (%)",
-                        Default = "100",
-                        Placeholder = "100",
+                        Flag = "MenuScale",
+                        Min = 20,
+                        Max = 300,
+                        Default = math.floor(Library.MenuScale * 100),
                         Callback = function(Value)
-                            TargetScale = tonumber(Value) or 100
-                        end
-                    })
-
-                    MenuSection:Button({
-                        Name = "Apply Scale",
-                        Callback = function()
-                            local scaleVal = math.clamp(TargetScale / 100, 0.2, 3.0)
+                            local scaleVal = math.clamp(Value / 100, 0.2, 3.0)
                             Library.MenuScale = scaleVal
                             if Library.MenuScaleObject then
                                 Library.MenuScaleObject.Scale = scaleVal
                             end
-                            Library:Notification("Menu scale applied: " .. tostring(TargetScale) .. "%", 3, Library.Theme.Accent)
+                        end
+                    })
+
+                    MenuSection:Toggle({
+                        Name = "Accent RGB",
+                        Flag = "AccentRGB",
+                        Default = false,
+                        Callback = function(Value)
+                            Library.AccentRGB = Value
                         end
                     })
 
@@ -5319,6 +5350,7 @@ end
                 -- consumidor já registrou seus SetFlags antes de chamar Window:Init.
             end
 
+            task.wait(0.1)
             local AutoloadSuccess, AutoloadError = Library:LoadAutoload()
             if not AutoloadSuccess and AutoloadError ~= "Nenhum autoload definido" then
                 warn("[Library Autoload] " .. tostring(AutoloadError))
