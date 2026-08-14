@@ -791,18 +791,35 @@ do
     end
 
     -- Deve ser chamado depois que o menu registrar todos os SetFlags.
+    -- O arquivo salva o nome da config, evitando cópias silenciosamente inválidas.
     Library.LoadAutoload = function(Self)
-        local Path = Library.Directory .. "/autoload.json"
-        if not isfile(Path) then
+        local AutoloadPath = Library.Directory .. "/autoload.json"
+        if not isfile(AutoloadPath) then
             return false, "Arquivo de autoload não existe"
         end
 
-        local Content = readfile(Path)
-        if Content:match("^%s*$") then
+        local Manifest = readfile(AutoloadPath)
+        if Manifest:match("^%s*$") then
             return false, "Nenhum autoload definido"
         end
 
-        return Self:LoadConfig(Content)
+        local DecodeOk, Data = pcall(HttpService.JSONDecode, HttpService, Manifest)
+        if not DecodeOk or type(Data) ~= "table" or type(Data.Config) ~= "string" or Data.Config == "" then
+            return false, "Manifesto de autoload inválido"
+        end
+
+        local ConfigPath = Library.Directory .. Library.Folders.Configs .. "/" .. Data.Config .. ".json"
+        if not isfile(ConfigPath) then
+            return false, "Config de autoload não existe: " .. Data.Config
+        end
+
+        local ConfigContent = readfile(ConfigPath)
+        local Success, Error = Self:LoadConfig(ConfigContent)
+        if not Success then
+            return false, Error
+        end
+
+        return true, Data.Config
     end
 
     Library.GetConfigsList = function(Self, Element)
@@ -5251,26 +5268,60 @@ end
                     AutoloadSection:Button({
                         Name = "Set selected as autoload",
                         Callback = function()
-                            if ConfigSelected then 
-                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
-                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-                                writefile(Library.Directory .. "/autoload.json", readfile(ConfigsFolder .. ConfigSelected .. ".json"))
-                                Library:Notification("Set config "..ConfigSelected.." as autoload", 3, Library.Theme.Accent)
+                            if type(ConfigSelected) ~= "string" or ConfigSelected == "" then
+                                Library:Notification("Select a config before setting autoload", 3, Color3.fromRGB(255, 0, 0))
+                                return
                             end
+
+                            local ConfigPath = ConfigsFolder .. ConfigSelected .. ".json"
+                            if not isfile(ConfigPath) then
+                                Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
+                                return
+                            end
+
+                            -- Confirma que a config é JSON válido antes de apontá-la como autoload.
+                            local IsValid = pcall(HttpService.JSONDecode, HttpService, readfile(ConfigPath))
+                            if not IsValid then
+                                Library:Notification("Selected config is invalid", 3, Color3.fromRGB(255, 0, 0))
+                                return
+                            end
+
+                            local Manifest = HttpService:JSONEncode({ Config = ConfigSelected })
+                            local WriteOk, WriteError = pcall(writefile, Library.Directory .. "/autoload.json", Manifest)
+                            if not WriteOk then
+                                Library:Notification("Failed to set autoload: " .. tostring(WriteError), 3, Color3.fromRGB(255, 0, 0))
+                                return
+                            end
+
+                            local SavedManifest = readfile(Library.Directory .. "/autoload.json")
+                            if SavedManifest ~= Manifest then
+                                Library:Notification("Autoload file could not be verified", 3, Color3.fromRGB(255, 0, 0))
+                                return
+                            end
+
+                            Library:Notification("Set config " .. ConfigSelected .. " as autoload", 3, Library.Theme.Accent)
                         end
                     })
                     AutoloadSection:Button({
                         Name = "Remove autoload",
                         Callback = function()
-                            writefile(Library.Directory .. "/autoload.json", "")
+                            local Path = Library.Directory .. "/autoload.json"
+                            local WriteOk, WriteError = pcall(writefile, Path, "")
+                            if not WriteOk then
+                                Library:Notification("Failed to remove autoload: " .. tostring(WriteError), 3, Color3.fromRGB(255, 0, 0))
+                                return
+                            end
                             Library:Notification("Removed autoload", 3, Library.Theme.Accent)
                         end
                     })
                 end
-                -- O autoload é aplicado externamente, após o script consumidor
-                -- criar todas as opções e registrar seus respectivos SetFlags.
+                -- A aplicação ocorre no final de Library.Init: nessa altura o menu
+                -- consumidor já registrou seus SetFlags antes de chamar Window:Init.
+            end
+
+            local AutoloadSuccess, AutoloadError = Library:LoadAutoload()
+            if not AutoloadSuccess and AutoloadError ~= "Nenhum autoload definido" then
+                warn("[Library Autoload] " .. tostring(AutoloadError))
             end
         end
     end
