@@ -760,17 +760,24 @@ do
     end
 
     Library.LoadConfig = function(Self, Config)
-        local Decoded = HttpService:JSONDecode(Config)
+        if type(Config) ~= "string" or Config:match("^%s*$") then
+            return false, "Config vazia ou inválida"
+        end
+
+        local DecodeOk, Decoded = pcall(HttpService.JSONDecode, HttpService, Config)
+        if not DecodeOk or type(Decoded) ~= "table" then
+            return false, "Falha ao decodificar a config: " .. tostring(Decoded)
+        end
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Decoded do 
+            for Index, Value in Decoded do
                 local SetFunction = Library.SetFlags[Index]
 
                 if not SetFunction then
                     continue
                 end
 
-                if type(Value) == "table" and Value.Key then 
+                if type(Value) == "table" and Value.Key then
                     SetFunction(Value)
                 elseif type(Value) == "table" and Value.Color then
                     SetFunction(Value.Color, Value.Alpha)
@@ -781,6 +788,21 @@ do
         end)
 
         return Success, Result
+    end
+
+    -- Deve ser chamado depois que o menu registrar todos os SetFlags.
+    Library.LoadAutoload = function(Self)
+        local Path = Library.Directory .. "/autoload.json"
+        if not isfile(Path) then
+            return false, "Arquivo de autoload não existe"
+        end
+
+        local Content = readfile(Path)
+        if Content:match("^%s*$") then
+            return false, "Nenhum autoload definido"
+        end
+
+        return Self:LoadConfig(Content)
     end
 
     Library.GetConfigsList = function(Self, Element)
@@ -5247,10 +5269,8 @@ end
                         end
                     })
                 end
-                local AutoloadContent = readfile(Library.Directory .. "/autoload.json")
-                if AutoloadContent ~= "" then 
-                    Library:LoadConfig(AutoloadContent)
-                end
+                -- O autoload é aplicado externamente, após o script consumidor
+                -- criar todas as opções e registrar seus respectivos SetFlags.
             end
         end
     end
