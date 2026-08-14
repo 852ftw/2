@@ -2595,6 +2595,14 @@ end
             end
         
             local Items = {} do
+                local ViewportSize = Vector2.new(1920, 1080)
+                pcall(function()
+                    local CurrentCamera = workspace.CurrentCamera
+                    if CurrentCamera then
+                        ViewportSize = CurrentCamera.ViewportSize
+                    end
+                end)
+                
                 local isRight = Library.NotificationPosition == "Right"
                 Items["Notification"] = Library:Create("Frame", {
                     Name = "\0",
