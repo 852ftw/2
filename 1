@@ -5156,18 +5156,26 @@ end
                         end
                     })
 
-                    MenuSection:Slider({
+                    local TargetScale = math.floor(Library.MenuScale * 100)
+                    MenuSection:Textbox({
                         Name = "Menu Scale (%)",
                         Flag = "MenuScale",
-                        Min = 20,
-                        Max = 300,
-                        Default = math.floor(Library.MenuScale * 100),
+                        Default = tostring(TargetScale),
+                        Placeholder = "100",
                         Callback = function(Value)
-                            local scaleVal = math.clamp(Value / 100, 0.2, 3.0)
+                            TargetScale = tonumber(Value) or 100
+                        end
+                    })
+
+                    MenuSection:Button({
+                        Name = "Apply Scale",
+                        Callback = function()
+                            local scaleVal = math.clamp(TargetScale / 100, 0.2, 3.0)
                             Library.MenuScale = scaleVal
                             if Library.MenuScaleObject then
                                 Library.MenuScaleObject.Scale = scaleVal
                             end
+                            Library:Notification("Menu scale applied: " .. tostring(TargetScale) .. "%", 3, Library.Theme.Accent)
                         end
                     })
 
