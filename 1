@@ -3500,10 +3500,13 @@ end
             end
             
             Library.SetFlags["MenuScale"] = function(Value)
-                local scaleVal = math.clamp(Value / 100, 0.2, 3.0)
-                Library.MenuScale = scaleVal
-                if Library.MenuScaleObject then
-                    Library.MenuScaleObject.Scale = scaleVal
+                local num = tonumber(Value)
+                if num then
+                    local scaleVal = math.clamp(num / 100, 0.2, 3.0)
+                    Library.MenuScale = scaleVal
+                    if Library.MenuScaleObject then
+                        Library.MenuScaleObject.Scale = scaleVal
+                    end
                 end
             end
 
@@ -5156,26 +5159,26 @@ end
                         end
                     })
 
-                    local TargetScale = math.floor(Library.MenuScale * 100)
+                    local ScaleValue = math.floor(Library.MenuScale * 100)
                     MenuSection:Textbox({
                         Name = "Menu Scale (%)",
                         Flag = "MenuScale",
-                        Default = tostring(TargetScale),
+                        Default = tostring(ScaleValue),
                         Placeholder = "100",
                         Callback = function(Value)
-                            TargetScale = tonumber(Value) or 100
+                            ScaleValue = tonumber(Value) or 100
                         end
                     })
 
                     MenuSection:Button({
                         Name = "Apply Scale",
                         Callback = function()
-                            local scaleVal = math.clamp(TargetScale / 100, 0.2, 3.0)
+                            local scaleVal = math.clamp(ScaleValue / 100, 0.2, 3.0)
                             Library.MenuScale = scaleVal
                             if Library.MenuScaleObject then
                                 Library.MenuScaleObject.Scale = scaleVal
                             end
-                            Library:Notification("Menu scale applied: " .. tostring(TargetScale) .. "%", 3, Library.Theme.Accent)
+                            Library:Notification("Menu scale applied: " .. tostring(ScaleValue) .. "%", 3, Library.Theme.Accent)
                         end
                     })
 
