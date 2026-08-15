@@ -5228,7 +5228,7 @@ end
                 local ConfigSelected 
                 local ConfigsFolder = Library.Directory .. Library.Folders.Configs .. "/"
 
-                local ConfigsSection = SettingsPage:Section({Name = "Profiles", Side = 1}) do
+                local ConfigsSection = SettingsPage:Section({Name = "Profiles", Side = 3}) do
                     local ConfigsList = ConfigsSection:List({
                         Flag = "Configs",
                         Items = { },
@@ -5321,7 +5321,7 @@ end
                     Library:GetConfigsList(ConfigsList)
                 end
 
-                local AutoloadSection = SettingsPage:Section({Name = "Autoload", Side = 1}) do
+                local AutoloadSection = SettingsPage:Section({Name = "Autoload", Side = 3}) do
                     AutoloadSection:Button({
                         Name = "Set selected as autoload",
                         Callback = function()
