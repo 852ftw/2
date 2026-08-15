@@ -760,24 +760,17 @@ do
     end
 
     Library.LoadConfig = function(Self, Config)
-        if type(Config) ~= "string" or Config:match("^%s*$") then
-            return false, "Config vazia ou inválida"
-        end
-
-        local DecodeOk, Decoded = pcall(HttpService.JSONDecode, HttpService, Config)
-        if not DecodeOk or type(Decoded) ~= "table" then
-            return false, "Falha ao decodificar a config: " .. tostring(Decoded)
-        end
+        local Decoded = HttpService:JSONDecode(Config)
 
         local Success, Result = Library:SafeCall(function()
-            for Index, Value in Decoded do
+            for Index, Value in Decoded do 
                 local SetFunction = Library.SetFlags[Index]
 
                 if not SetFunction then
                     continue
                 end
 
-                if type(Value) == "table" and Value.Key then
+                if type(Value) == "table" and Value.Key then 
                     SetFunction(Value)
                 elseif type(Value) == "table" and Value.Color then
                     SetFunction(Value.Color, Value.Alpha)
@@ -5231,12 +5224,12 @@ end
                     end
                 end
 
-                local ProfilesSection = SettingsPage:Section({Name = "Profiles", Side = 3}) do
-                    local ConfigName 
-                    local ConfigSelected 
-                    local ConfigsFolder = Library.Directory .. Library.Folders.Configs .. "/"
+                local ConfigName 
+                local ConfigSelected 
+                local ConfigsFolder = Library.Directory .. Library.Folders.Configs .. "/"
 
-                    local ConfigsList = ProfilesSection:List({
+                local ConfigsSection = SettingsPage:Section({Name = "Profiles", Side = 1}) do
+                    local ConfigsList = ConfigsSection:List({
                         Flag = "Configs",
                         Items = { },
                         Multi = false,
@@ -5245,29 +5238,36 @@ end
                         end
                     })
 
-                    ProfilesSection:Textbox({
-                        Name = "Config Name",
-                        Placeholder = "Name",
+                    ConfigsSection:Textbox({
+                        Name = "Config name",
+                        Flag = "ConfigName",
+                        Placeholder = "Config name",
                         Callback = function(Value)
-                            ConfigName = Value
+                            ConfigName = Value 
                         end
                     })
 
-                    ProfilesSection:Button({
+                    ConfigsSection:Button({
                         Name = "Create",
                         Callback = function()
                             if ConfigName then 
-                                if isfile(ConfigsFolder .. ConfigName .. ".json") then
-                                    Library:Notification("Config already exists", 3, Color3.fromRGB(255, 0, 0))
+                                if ConfigName == "" then 
                                     return
                                 end
+
+                                if isfile(ConfigsFolder .. ConfigName .. ".json") then 
+                                    Library:Notification("Config with the name "..ConfigName.." already exists", 3, Color3.fromRGB(255, 0, 0))
+                                    return
+                                end
+
                                 writefile(ConfigsFolder .. ConfigName .. ".json", Library:GetConfig())
                                 Library:GetConfigsList(ConfigsList)
                                 Library:Notification("Created config "..ConfigName, 3, Library.Theme.Accent)
                             end
                         end
                     })
-                    ProfilesSection:Button({
+
+                    ConfigsSection:Button({
                         Name = "Load",
                         Callback = function()
                             if ConfigSelected then 
@@ -5275,7 +5275,9 @@ end
                                     Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
                                     return
                                 end
+
                                 local Success, Error = Library:LoadConfig(readfile(ConfigsFolder .. ConfigSelected .. ".json"))
+
                                 if Success then 
                                     Library:Notification("Loaded config "..ConfigSelected .. " succesfully", 3, Library.Theme.Accent)
                                 else
@@ -5284,7 +5286,8 @@ end
                             end
                         end
                     })
-                    ProfilesSection:Button({
+
+                    ConfigsSection:Button({
                         Name = "Delete",
                         Callback = function()
                             if ConfigSelected then 
@@ -5292,13 +5295,15 @@ end
                                     Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
                                     return
                                 end
+
                                 delfile(ConfigsFolder .. ConfigSelected .. ".json")
                                 Library:GetConfigsList(ConfigsList)
                                 Library:Notification("Deleted config "..ConfigSelected, 3, Library.Theme.Accent)
                             end
                         end
                     })
-                    ProfilesSection:Button({
+
+                    ConfigsSection:Button({
                         Name = "Overwrite",
                         Callback = function()
                             if ConfigSelected then 
@@ -5306,73 +5311,46 @@ end
                                     Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
                                     return
                                 end
+
                                 writefile(ConfigsFolder .. ConfigSelected .. ".json", Library:GetConfig())
                                 Library:Notification("Overwrote config "..ConfigSelected, 3, Library.Theme.Accent)
                             end
                         end
                     })
+
                     Library:GetConfigsList(ConfigsList)
                 end
 
-                local AutoloadSection = SettingsPage:Section({Name = "Autoload", Side = 3}) do
+                local AutoloadSection = SettingsPage:Section({Name = "Autoload", Side = 1}) do
                     AutoloadSection:Button({
                         Name = "Set selected as autoload",
                         Callback = function()
-                            if type(ConfigSelected) ~= "string" or ConfigSelected == "" then
-                                Library:Notification("Select a config before setting autoload", 3, Color3.fromRGB(255, 0, 0))
-                                return
-                            end
+                            if ConfigSelected then 
+                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
+                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
+                                    return
+                                end
 
-                            local ConfigPath = ConfigsFolder .. ConfigSelected .. ".json"
-                            if not isfile(ConfigPath) then
-                                Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                return
+                                writefile(Library.Directory .. "/autoload.json", readfile(ConfigsFolder .. ConfigSelected .. ".json"))
+                                Library:Notification("Set config "..ConfigSelected.." as autoload", 3, Library.Theme.Accent)
                             end
-
-                            -- Confirma que a config é JSON válido antes de apontá-la como autoload.
-                            local IsValid = pcall(HttpService.JSONDecode, HttpService, readfile(ConfigPath))
-                            if not IsValid then
-                                Library:Notification("Selected config is invalid", 3, Color3.fromRGB(255, 0, 0))
-                                return
-                            end
-
-                            local Manifest = HttpService:JSONEncode({ Config = ConfigSelected })
-                            local WriteOk, WriteError = pcall(writefile, Library.Directory .. "/autoload.json", Manifest)
-                            if not WriteOk then
-                                Library:Notification("Failed to set autoload: " .. tostring(WriteError), 3, Color3.fromRGB(255, 0, 0))
-                                return
-                            end
-
-                            local SavedManifest = readfile(Library.Directory .. "/autoload.json")
-                            if SavedManifest ~= Manifest then
-                                Library:Notification("Autoload file could not be verified", 3, Color3.fromRGB(255, 0, 0))
-                                return
-                            end
-
-                            Library:Notification("Set config " .. ConfigSelected .. " as autoload", 3, Library.Theme.Accent)
                         end
                     })
+
                     AutoloadSection:Button({
                         Name = "Remove autoload",
                         Callback = function()
-                            local Path = Library.Directory .. "/autoload.json"
-                            local WriteOk, WriteError = pcall(writefile, Path, "")
-                            if not WriteOk then
-                                Library:Notification("Failed to remove autoload: " .. tostring(WriteError), 3, Color3.fromRGB(255, 0, 0))
-                                return
-                            end
+                            writefile(Library.Directory .. "/autoload.json", "")
                             Library:Notification("Removed autoload", 3, Library.Theme.Accent)
                         end
                     })
                 end
-                -- A aplicação ocorre no final de Library.Init: nessa altura o menu
-                -- consumidor já registrou seus SetFlags antes de chamar Window:Init.
-            end
 
-            task.wait(0.1)
-            local AutoloadSuccess, AutoloadError = Library:LoadAutoload()
-            if not AutoloadSuccess and AutoloadError ~= "Nenhum autoload definido" then
-                warn("[Library Autoload] " .. tostring(AutoloadError))
+                local AutoloadContent = readfile(Library.Directory .. "/autoload.json")
+
+                if AutoloadContent ~= "" then 
+                    Library:LoadConfig(AutoloadContent)
+                end
             end
         end
     end
