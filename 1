@@ -1788,6 +1788,7 @@ Library.CreateKeybind = function(Self, Data)
 
         Toggled = false,
         Picking = false,
+        Control = Data.Control,
 
         Items = { },
     }
@@ -1991,13 +1992,20 @@ Library.CreateKeybind = function(Self, Data)
         Update()
     end
 
+    local function IsKeybindActive()
+        if Keybind.Control and type(Keybind.Control.Value) == "boolean" then
+            return Keybind.Control.Value
+        end
+        return Keybind.Toggled == true
+    end
+
     Update = function()
         if KeybindObject then
             KeybindObject:Set(Data.Name, Keybind.Mode, Keybind.Value)
             if type(KeybindObject.SetConfigured) == "function" then
                 KeybindObject:SetConfigured(Keybind.Key ~= "" and Keybind.Value ~= "")
             end
-            KeybindObject:SetStatus(Keybind.Toggled)
+            KeybindObject:SetStatus(IsKeybindActive())
         end
     end
 
@@ -3777,6 +3785,7 @@ end
                     Flag = Keybind.Flag,
                     Default = Keybind.Default,
                     Mode = Keybind.Mode,
+                    Control = Toggle,
                     Callback = Keybind.Callback
                 })
 
