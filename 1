@@ -17,7 +17,7 @@ Library.MenuScale = Library.MenuScale or 1
 Library.AnimatedTitle = Library.AnimatedTitle == nil and true or Library.AnimatedTitle
 Library.SelectedTheme = Library.SelectedTheme or "Preset"
 Library.NotificationPosition = Library.NotificationPosition or "Left"
-Library.Directory = Library.Directory or "juanitaaaaaaa"
+Library.Directory = Library.Directory or "AkkoMenu"
 Library.FontSize = Library.FontSize or 12
 
 Library.Folders = Library.Folders or {
@@ -811,7 +811,7 @@ do
 
         if not Success then
             warn(Result)
-            return false
+            return false, Result
         end
 
         return Success, Result
@@ -855,8 +855,9 @@ do
         end)
 
         if not Success then
-            warn("Failed to get config:\n"..Result)
-            return
+            warn("Failed to get config:\n" .. tostring(Result or "unknown error"))
+            return nil, Result or "unknown error"
+
         end
 
         return HttpService:JSONEncode(Config)
@@ -1093,8 +1094,9 @@ do
         end)
 
         if not Success then
-            warn("Failed to get theme:\n"..Result)
-            return
+                        warn("Failed to get theme:\n" .. tostring(Result or "unknown error"))
+            return nil, Result or "unknown error"
+
         end
 
         return HttpService:JSONEncode(Config)
@@ -5659,7 +5661,7 @@ end
                                 if Success then 
                                     Library:Notification("Loaded config "..ConfigSelected .. " succesfully", 3, Library.Theme.Accent)
                                 else
-                                    Library:Notification("Failed to load config "..ConfigSelected .. " report this to the devs: "..Error, 3, Color3.fromRGB(255, 0, 0))
+                                    Library:Notification("Failed to load config " .. tostring(ConfigSelected) .. " report this to the devs: " .. tostring(Error or "unknown error"), 3, Color3.fromRGB(255, 0, 0))
                                 end
                             end
                         end
