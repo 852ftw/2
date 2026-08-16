@@ -2619,8 +2619,18 @@ end
                     NewKey:SetStatus(NewKey.Active)
                 end
         
+                local function ApplyKeybindColor()
+                    local ThemeKey = NewKey.Active and "Accent" or "Inactive Text"
+                    local Color = Library.Theme[ThemeKey] or Library.Theme["Text"]
+                    if Color then
+                        NewKeyText.Instance.TextColor3 = Color
+                    end
+                    NewKey.Object:ChangeItemTheme({TextColor3 = ThemeKey})
+                end
+
                 function NewKey:Set(Name, Mode, Key)
                     NewKey.Object.Instance.Text = Name .. " - " .. Mode .. " [" .. Key .. "]"
+                    ApplyKeybindColor()
                     KeybindList:UpdateSize()
                     task.defer(function()
                         if NewKey.Showing then
@@ -2628,10 +2638,11 @@ end
                         end
                     end)
                 end
+
+
                 function NewKey:SetStatus(Bool)
                     NewKey.Active = Bool == true or Bool == 1 or Bool == "true"
-                    NewKey.Object:ChangeItemTheme({TextColor3 = NewKey.Active and "Accent" or "Inactive Text"})
-
+                    ApplyKeybindColor()
                     local ShouldShow = NewKey.Configured and CanShow
 
                     if NewKey.Showing == ShouldShow then
