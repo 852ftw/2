@@ -2630,7 +2630,8 @@ end
                 end
                 function NewKey:SetStatus(Bool)
                     NewKey.Active = Bool == true or Bool == 1 or Bool == "true"
-                    NewKey.Object:ChangeItemTheme({TextColor3 = NewKey.Active and "Accent" or "Text"})
+                    NewKey.Object:ChangeItemTheme({TextColor3 = NewKey.Active and "Accent" or "Inactive Text"})
+
                     local ShouldShow = NewKey.Configured and CanShow
 
                     if NewKey.Showing == ShouldShow then
