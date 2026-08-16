@@ -4437,47 +4437,46 @@ end
             end)
 
             function Dropdown:Set(Value)
-                if Dropdown.Multi then 
-                    if type(Value) ~= "table" then 
+                if Dropdown.Multi then
+                    if type(Value) ~= "table" then
                         return
                     end
 
-                    Dropdown.Value = Value
-
-                    for Index, Value in Value do
-                        local OptionData = Dropdown.Options[Value]
-                         
+                    local SelectedValues = Value
+                    Dropdown.Value = SelectedValues
+                    for _, SelectedValue in SelectedValues do
+                        local OptionData = Dropdown.Options[SelectedValue]
                         if not OptionData then
                             continue
                         end
 
-                        OptionData.IsSelected = true 
+                        OptionData.IsSelected = true
                         OptionData:ToggleState("Active")
                     end
 
-                    Flags[Dropdown.Flag] = Value
-                    Items["Value"].Instance.Text = table.concat(Value, ", ")
+                    Flags[Dropdown.Flag] = SelectedValues
+                    Items["Value"].Instance.Text = table.concat(SelectedValues, ", ")
                 else
                     if not Dropdown.Options[Value] then
                         return
                     end
 
-                    local OptionData = Dropdown.Options[Value]
+                    local SelectedValue = Value
+                    local OptionData = Dropdown.Options[SelectedValue]
+                    Dropdown.Value = SelectedValue
 
-                    Dropdown.Value = Value
-
-                    for Index, Value in Dropdown.Options do
-                        if Value ~= OptionData then
-                            Value.IsSelected = false 
-                            Value:ToggleState("Inactive")
+                    for _, Option in Dropdown.Options do
+                        if Option ~= OptionData then
+                            Option.IsSelected = false
+                            Option:ToggleState("Inactive")
                         else
-                            Value.IsSelected = true 
-                            Value:ToggleState("Active")
+                            Option.IsSelected = true
+                            Option:ToggleState("Active")
                         end
                     end
 
-                    Flags[Dropdown.Flag] = Value
-                    Items["Value"].Instance.Text = Value
+                    Flags[Dropdown.Flag] = SelectedValue
+                    Items["Value"].Instance.Text = SelectedValue
                 end
 
                 Library:SafeCall(Dropdown.Callback, Dropdown.Value)
@@ -4936,45 +4935,44 @@ end
             end
 
             function List:Set(Value)
-                if List.Multi then 
-                    if type(Value) ~= "table" then 
+                if List.Multi then
+                    if type(Value) ~= "table" then
                         return
                     end
 
-                    List.Value = Value
-
-                    for Index, Value in Value do
-                        local OptionData = List.Options[Value]
-                         
+                    local SelectedValues = Value
+                    List.Value = SelectedValues
+                    for _, SelectedValue in SelectedValues do
+                        local OptionData = List.Options[SelectedValue]
                         if not OptionData then
                             continue
                         end
 
-                        OptionData.IsSelected = true 
+                        OptionData.IsSelected = true
                         OptionData:ToggleState("Active")
                     end
 
-                    Flags[List.Flag] = Value
+                    Flags[List.Flag] = SelectedValues
                 else
                     if not List.Options[Value] then
                         return
                     end
 
-                    local OptionData = List.Options[Value]
+                    local SelectedValue = Value
+                    local OptionData = List.Options[SelectedValue]
+                    List.Value = SelectedValue
 
-                    List.Value = Value
-
-                    for Index, Value in List.Options do
-                        if Value ~= OptionData then
-                            Value.IsSelected = false 
-                            Value:ToggleState("Inactive")
+                    for _, Option in List.Options do
+                        if Option ~= OptionData then
+                            Option.IsSelected = false
+                            Option:ToggleState("Inactive")
                         else
-                            Value.IsSelected = true 
-                            Value:ToggleState("Active")
+                            Option.IsSelected = true
+                            Option:ToggleState("Active")
                         end
                     end
 
-                    Flags[List.Flag] = Value
+                    Flags[List.Flag] = SelectedValue
                 end
 
                 Library:SafeCall(List.Callback, List.Value)
