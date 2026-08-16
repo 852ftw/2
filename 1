@@ -2405,7 +2405,8 @@ end
         Library.KeybindList = function(Self)
             local KeybindList = {
                 Items = {},
-                Keys = {}
+                Keys = {},
+                Enabled = true
             }
         
             local Items = {} do
@@ -2506,7 +2507,14 @@ end
             Self.KeybindListObject = KeybindList
         
             function KeybindList:SetVisibility(Bool)
-                Items["KeybindList"].Instance.Visible = Bool
+                KeybindList.Enabled = IsEnabled(Bool)
+                if not KeybindList.Enabled then
+                    Items["KeybindList"].Instance.Visible = false
+                elseif type(KeybindList.UpdateSize) == "function" then
+                    KeybindList:UpdateSize()
+                else
+                    Items["KeybindList"].Instance.Visible = true
+                end
             end
             local SavedVisibility = Library.Flags["Keybind list"]
             if type(SavedVisibility) == "boolean" then
@@ -2560,7 +2568,7 @@ end
                     end
                 end
         
-                if #ActiveKeys == 0 then 
+                if #ActiveKeys == 0 or not KeybindList.Enabled then
                     Items["KeybindList"].Instance.Visible = false
                 else
                     Items["KeybindList"].Instance.Visible = true
