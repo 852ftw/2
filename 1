@@ -12,6 +12,7 @@ Library.Connections = Library.Connections or {}
 Library.Threads = Library.Threads or {}
 Library.Notifications = Library.Notifications or {}
 Library.OpenFrames = Library.OpenFrames or {}
+Library.KeybindRegistry = Library.KeybindRegistry or {}
 Library.MenuScale = Library.MenuScale or 1
 Library.AnimatedTitle = Library.AnimatedTitle == nil and true or Library.AnimatedTitle
 Library.SelectedTheme = Library.SelectedTheme or "Preset"
@@ -74,7 +75,7 @@ local SetFlags = Library.SetFlags
 
     MODIFICATIONS:
     - Keybinds now store key name (e.g., "F") and compare correctly.
-    - Dropdown: added scroll (max height 150) and search box.
+    - Dropdown: added scroll (max height 150), optional multi-select, and optional search box.
     - MenuKeybind now uses name string (e.g., "RightShift").
 ]]
 
@@ -89,6 +90,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
+local TextService = game:GetService("TextService")
 local GuiService = game:GetService("GuiService")
 local CoreGui = cloneref(game:GetService("CoreGui"))
 
@@ -254,6 +256,90 @@ do
             ["Element"] = Color3.fromRGB(24, 36, 50),
             ["Element 2"] = Color3.fromRGB(36, 52, 72),
             ["Hovered Element"] = Color3.fromRGB(48, 68, 94)
+        },
+        ["BBot"] = {
+            ["Border"] = Color3.fromRGB(20, 20, 20),
+            ["Outline"] = Color3.fromRGB(20, 20, 20),
+            ["Background"] = Color3.fromRGB(35, 35, 35),
+            ["Inline"] = Color3.fromRGB(27, 27, 27),
+            ["Accent"] = Color3.fromRGB(126, 72, 163),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(150, 150, 150),
+            ["Element"] = Color3.fromRGB(30, 30, 30),
+            ["Element 2"] = Color3.fromRGB(45, 45, 45),
+            ["Hovered Element"] = Color3.fromRGB(58, 45, 67)
+        },
+        ["Fatality"] = {
+            ["Border"] = Color3.fromRGB(22, 18, 38),
+            ["Outline"] = Color3.fromRGB(60, 53, 93),
+            ["Background"] = Color3.fromRGB(25, 19, 53),
+            ["Inline"] = Color3.fromRGB(28, 22, 61),
+            ["Accent"] = Color3.fromRGB(197, 7, 84),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(161, 151, 181),
+            ["Element"] = Color3.fromRGB(25, 24, 66),
+            ["Element 2"] = Color3.fromRGB(45, 40, 82),
+            ["Hovered Element"] = Color3.fromRGB(86, 32, 70)
+        },
+        ["Jester"] = {
+            ["Border"] = Color3.fromRGB(25, 25, 25),
+            ["Outline"] = Color3.fromRGB(55, 55, 55),
+            ["Background"] = Color3.fromRGB(28, 28, 28),
+            ["Inline"] = Color3.fromRGB(31, 31, 31),
+            ["Accent"] = Color3.fromRGB(219, 68, 103),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(160, 160, 160),
+            ["Element"] = Color3.fromRGB(36, 36, 36),
+            ["Element 2"] = Color3.fromRGB(52, 52, 52),
+            ["Hovered Element"] = Color3.fromRGB(75, 42, 54)
+        },
+        ["Mint"] = {
+            ["Border"] = Color3.fromRGB(25, 25, 25),
+            ["Outline"] = Color3.fromRGB(55, 55, 55),
+            ["Background"] = Color3.fromRGB(28, 28, 28),
+            ["Inline"] = Color3.fromRGB(31, 31, 31),
+            ["Accent"] = Color3.fromRGB(61, 180, 136),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(160, 160, 160),
+            ["Element"] = Color3.fromRGB(36, 36, 36),
+            ["Element 2"] = Color3.fromRGB(52, 52, 52),
+            ["Hovered Element"] = Color3.fromRGB(40, 75, 62)
+        },
+        ["Tokyo Night"] = {
+            ["Border"] = Color3.fromRGB(15, 15, 23),
+            ["Outline"] = Color3.fromRGB(50, 50, 50),
+            ["Background"] = Color3.fromRGB(22, 22, 31),
+            ["Inline"] = Color3.fromRGB(26, 26, 39),
+            ["Accent"] = Color3.fromRGB(103, 89, 179),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(145, 145, 165),
+            ["Element"] = Color3.fromRGB(25, 25, 37),
+            ["Element 2"] = Color3.fromRGB(42, 42, 58),
+            ["Hovered Element"] = Color3.fromRGB(55, 48, 91)
+        },
+        ["Ubuntu"] = {
+            ["Border"] = Color3.fromRGB(25, 25, 25),
+            ["Outline"] = Color3.fromRGB(25, 25, 25),
+            ["Background"] = Color3.fromRGB(50, 50, 50),
+            ["Inline"] = Color3.fromRGB(55, 55, 55),
+            ["Accent"] = Color3.fromRGB(226, 88, 30),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(175, 175, 175),
+            ["Element"] = Color3.fromRGB(62, 62, 62),
+            ["Element 2"] = Color3.fromRGB(78, 78, 78),
+            ["Hovered Element"] = Color3.fromRGB(96, 62, 43)
+        },
+        ["Quartz"] = {
+            ["Border"] = Color3.fromRGB(25, 23, 31),
+            ["Outline"] = Color3.fromRGB(39, 35, 47),
+            ["Background"] = Color3.fromRGB(29, 27, 38),
+            ["Inline"] = Color3.fromRGB(32, 30, 43),
+            ["Accent"] = Color3.fromRGB(66, 110, 135),
+            ["Text"] = Color3.fromRGB(255, 255, 255),
+            ["Inactive Text"] = Color3.fromRGB(160, 160, 175),
+            ["Element"] = Color3.fromRGB(35, 35, 48),
+            ["Element 2"] = Color3.fromRGB(52, 51, 67),
+            ["Hovered Element"] = Color3.fromRGB(45, 67, 81)
         }
     }
 
@@ -742,7 +828,7 @@ do
         local Success, Result = Library:SafeCall(function()
             for Index, Value in Library.Flags do 
                 if type(Value) == "table" and Value.Key then
-                    Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode}
+                    Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode, Toggled = Value.Toggled}
                 elseif type(Value) == "table" and Value.Color then
                     Config[Index] = {Color = "#" .. Value.HexValue, Alpha = Value.Alpha}
                 else
@@ -1886,18 +1972,28 @@ Library.CreateKeybind = function(Self, Data)
         }
     end
 
-    local KeybindObject 
+    local KeybindObject
+    local Update
 
-    if Library.KeyList and Data.Name ~= "Menu Keybind" then 
-        KeybindObject = Library.KeyList:Add("", "", "")
+    function Keybind:AttachToKeybindList(KeyList)
+        if KeybindObject or Data.Name == "Menu Keybind" or not KeyList then
+            return
+        end
+        KeybindObject = KeyList:Add("", "", "")
+        Update()
     end
 
-    local Update = function()
-        if KeybindObject then 
+    Update = function()
+        if KeybindObject then
             KeybindObject:Set(Data.Name, Keybind.Mode, Keybind.Value)
             KeybindObject:SetStatus(Keybind.Toggled)
         end
     end
+
+    if Library.KeyList and Data.Name ~= "Menu Keybind" then
+        Keybind:AttachToKeybindList(Library.KeyList)
+    end
+    table.insert(Library.KeybindRegistry, Keybind)
 
     local ModeDropdown = Library:Dropdown({
         Name = "Mode",
@@ -1990,10 +2086,15 @@ Library.CreateKeybind = function(Self, Data)
     function Keybind:Set(value)
         local mode
         local key = value
+        local RestoreToggled = false
 
         if type(value) == "table" then
             mode = value.Mode
             key = value.Key
+            if value.Toggled ~= nil then
+                Keybind.Toggled = value.Toggled == true or value.Toggled == 1 or value.Toggled == "true"
+                RestoreToggled = true
+            end
         elseif table.find({"Toggle", "Hold", "Always"}, value) then
             mode = value
             key = nil
@@ -2001,6 +2102,12 @@ Library.CreateKeybind = function(Self, Data)
 
         if mode and table.find({"Toggle", "Hold", "Always"}, mode) then
             Keybind.Mode = mode
+        end
+
+        -- Configs antigas não salvavam Toggled; Always deve continuar ativo.
+        if not RestoreToggled and Keybind.Mode == "Always" then
+            Keybind.Toggled = true
+            RestoreToggled = true
         end
 
         local enumItem = resolveKey(key)
@@ -2015,6 +2122,9 @@ Library.CreateKeybind = function(Self, Data)
         end
 
         Keybind:SetMode()
+        if RestoreToggled and Data.Callback then
+            Library:SafeCall(Data.Callback, Keybind.Toggled)
+        end
         Update()
         Keybind.Picking = false
     end
@@ -2281,7 +2391,12 @@ end
                 return NewItem
             end
 
-            Self.Watermark = Watermark
+            Self.WatermarkObject = Watermark
+            Library.WatermarkObject = Watermark
+            local SavedVisibility = Library.Flags["Watermark"]
+            if type(SavedVisibility) == "boolean" then
+                Watermark:SetVisibility(SavedVisibility)
+            end
             return setmetatable(Watermark, Library)
         end
 
@@ -2387,33 +2502,51 @@ end
             end
         
             Library.KeyList = KeybindList
-            Self.KeybindList = KeybindList
+            Library.KeybindListObject = KeybindList
+            Self.KeybindListObject = KeybindList
         
             function KeybindList:SetVisibility(Bool)
                 Items["KeybindList"].Instance.Visible = Bool
             end
-        
+            local SavedVisibility = Library.Flags["Keybind list"]
+            if type(SavedVisibility) == "boolean" then
+                KeybindList:SetVisibility(SavedVisibility)
+            end
+            local function GetKeybindTextWidth(Object)
+                local TextObject = Object.Instance
+                local Width = TextObject.TextBounds.X
+                local Success, Measured = pcall(function()
+                    return TextService:GetTextSize(
+                        tostring(TextObject.Text),
+                        TextObject.TextSize,
+                        Enum.Font.SourceSans,
+                        Vector2.new(10000, 10000)
+                    )
+                end)
+                if Success and Measured then
+                    Width = math.max(Width, Measured.X)
+                end
+                return math.max(1, math.ceil(Width) + 2)
+            end
             function KeybindList:UpdateSize()
                 local Width = 0
                 local Y = 6
                 local Count = 0
-        
                 for Index, Value in KeybindList.Keys do
                     if Value.Showing then
                         local RowHeight = 14
-        
+                        local TextWidth = GetKeybindTextWidth(Value.Object)
                         Value.Object.Instance.Visible = true
-                        Width = math.max(Width, Value.Object.Instance.TextBounds.X)
-        
-                        Value.Object:Tween({Position = UDim2.new(0, 8, 0, Y), Size = UDim2.new(0, Value.Object.Instance.TextBounds.X, 0, RowHeight), TextTransparency = 0}, KeybindTweenInfo)
-        
+                        Width = math.max(Width, TextWidth)
+                        Value.Object:Tween({Position = UDim2.new(0, 8, 0, Y), Size = UDim2.new(0, TextWidth, 0, RowHeight), TextTransparency = 0}, KeybindTweenInfo)
                         Y += RowHeight + 4
                         Count += 1
                     end
                 end
-        
+
+
                 local TargetHeight = Count > 0 and math.max(25, Y + 5) or 25
-        
+
                 Items["Content"].Instance.Size = UDim2.new(0, Width, 0, TargetHeight)
         
                 Items["Inline"]:Tween({Size = UDim2.new(0, Width + 14, 0, TargetHeight)}, KeybindTweenInfo)
@@ -2447,6 +2580,8 @@ end
                     Position = UDim2.new(0, -8, 0, 6), 
                     TextTransparency = 1, 
                     Visible = false, 
+                    AutomaticSize = Enum.AutomaticSize.X,
+                    TextWrapped = false,
                     TextYAlignment = Enum.TextYAlignment.Center, 
                     TextXAlignment = Enum.TextXAlignment.Left
                 }):AddToTheme({TextColor3 = "Text"})
@@ -2470,10 +2605,13 @@ end
         
                 function NewKey:Set(Name, Mode, Key)
                     NewKey.Object.Instance.Text = Name .. " - " .. Mode .. " [" .. Key .. "]"
-
                     KeybindList:UpdateSize()
+                    task.defer(function()
+                        if NewKey.Showing then
+                            KeybindList:UpdateSize()
+                        end
+                    end)
                 end
-        
                 function NewKey:SetStatus(Bool)
                     Bool = Bool and CanShow
         
@@ -2487,8 +2625,12 @@ end
                         NewKeyText.Instance.Visible = true
                         NewKeyText.Instance.Position = UDim2.new(0, 0, 0, NewKeyText.Instance.Position.Y.Offset)
                         NewKeyText.Instance.TextTransparency = 1
-        
                         KeybindList:UpdateSize()
+                        task.defer(function()
+                            if NewKey.Showing then
+                                KeybindList:UpdateSize()
+                            end
+                        end)
                     else
                         NewKeyText:Tween({Position = UDim2.new(0, 0, 0, NewKeyText.Instance.Position.Y.Offset), TextTransparency = 1}, KeybindTweenInfo)
         
@@ -2505,8 +2647,12 @@ end
                 return NewKey
             end
         
+            for _, ExistingKeybind in Library.KeybindRegistry do
+                if ExistingKeybind.AttachToKeybindList then
+                    ExistingKeybind:AttachToKeybindList(KeybindList)
+                end
+            end
             KeybindList:UpdateSize()
-        
             return setmetatable(KeybindList, Library)
         end
 
@@ -3194,6 +3340,68 @@ end
             return setmetatable(Page, Library)
         end
 
+        -- Dependency helpers.
+        -- `dependent = true` uses the first dependency toggle created in the same section.
+        -- A control can also point to a specific toggle with `dependent = ToggleObject`.
+        local function IsEnabled(Value)
+            return Value == true or Value == 1 or Value == "true"
+        end
+
+        local function GetDependencyController(Self, Params)
+            local Requested = Params.dependent
+            if Requested == nil then
+                Requested = Params.Dependent
+            end
+            if Requested == nil then
+                Requested = Params.Dependency
+            end
+
+            if Requested == false or Requested == 0 or Requested == "false" then
+                return nil
+            end
+
+            if Requested == nil then
+                return Self.DependencyToggle
+            end
+
+            if IsEnabled(Requested) then
+                return Self.DependencyToggle
+            end
+
+            if type(Requested) == "table" and type(Requested.SetVisibility) == "function" then
+                return Requested
+            end
+
+            return Self.DependencyToggle
+        end
+
+        local function BindDependentControl(Control, Self, Params)
+            local Dependency = GetDependencyController(Self, Params)
+            if not Dependency or Dependency == Control then
+                return nil
+            end
+
+            Control.Dependency = Dependency
+            Dependency.Dependents = Dependency.Dependents or {}
+            if not table.find(Dependency.Dependents, Control) then
+                table.insert(Dependency.Dependents, Control)
+            end
+
+            if type(Control.SetVisibility) == "function" then
+                Control:SetVisibility(Dependency.Value == true)
+            end
+
+            return Dependency
+        end
+
+        local function UpdateDependents(Toggle)
+            for _, Control in ipairs(Toggle.Dependents or {}) do
+                if type(Control.SetVisibility) == "function" then
+                    Control:SetVisibility(Toggle.Value == true)
+                end
+            end
+        end
+
         Library.Section = function(Self, Params)
             Params = Params or { } 
 
@@ -3302,6 +3510,7 @@ end
                 Section = Self,
 
                 Value = false,
+                Dependents = {},
                 Items = { }
             }
 
@@ -3393,6 +3602,19 @@ end
                 Toggle.Items = Items
             end
 
+
+            local RequestedDependency = Params.dependent
+            if RequestedDependency == nil then
+                RequestedDependency = Params.Dependent
+            end
+            if RequestedDependency == nil then
+                RequestedDependency = Params.Dependency
+            end
+            if IsEnabled(RequestedDependency) and not Self.DependencyToggle then
+                Self.DependencyToggle = Toggle
+                Toggle.IsDependencyToggle = true
+            end
+
             Items["Toggle"]:OnHover(function()
                 if Toggle.Value then return end 
                 Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Hovered Element"]})
@@ -3402,6 +3624,7 @@ end
             end)
 
             function Toggle:Set(Bool)
+                Bool = IsEnabled(Bool)
                 Toggle.Value = Bool 
 
                 if Bool then 
@@ -3413,6 +3636,7 @@ end
                 end
 
                 Flags[Toggle.Flag] = Bool
+                UpdateDependents(Toggle)
                 Library:SafeCall(Toggle.Callback, Bool)
             end
 
@@ -3486,6 +3710,7 @@ end
                 Toggle:Set(not Toggle.Value)
             end)
 
+            BindDependentControl(Toggle, Self, Params)
             Toggle:Set(Toggle.Default)
 
             SetFlags[Toggle.Flag] = function(Value)
@@ -3639,6 +3864,7 @@ end
                 Button:Press()
             end)
 
+            BindDependentControl(Button, Self, Params)
             return setmetatable(Button, Library)
         end
 
@@ -3866,6 +4092,7 @@ end
                 end
             end)
 
+            BindDependentControl(Slider, Self, Params)
             Slider:Set(Slider.Default)
 
             SetFlags[Slider.Flag] = function(Value)
@@ -3885,8 +4112,8 @@ end
                 Flag = Params.Flag or Params.flag or (Params.Name or Params.name),
                 Default = Params.Default or Params.default or "",
                 Callback = Params.Callback or Params.callback or function() end,
-                Multi = Params.Multi or Params.multi or false,
-
+                Multi = IsEnabled(Params.Multi) or IsEnabled(Params.multi),
+                Search = IsEnabled(Params.Search) or IsEnabled(Params.search),
                 Window = Self.Window,
                 Page = Self.Page,
                 Section = Self,
@@ -4106,6 +4333,14 @@ end
                     PaddingLeft = UDim.new(0, 4)
                 })
 
+                Items["Search"].Instance.Visible = Dropdown.Search
+                if Dropdown.Search then
+                    Items["OptionScroller"].Instance.Position = UDim2.new(0, 0, 0, 28)
+                    Items["OptionScroller"].Instance.Size = UDim2.new(1, 0, 1, -28)
+                else
+                    Items["OptionScroller"].Instance.Position = UDim2.new(0, 0, 0, 0)
+                    Items["OptionScroller"].Instance.Size = UDim2.new(1, 0, 1, 0)
+                end
                 Dropdown.Items = Items 
             end
 
@@ -4436,6 +4671,7 @@ end
                 Dropdown:Add(Value)
             end
 
+            BindDependentControl(Dropdown, Self, Params)
             Dropdown:Set(Dropdown.Default)
 
             SetFlags[Dropdown.Flag] = function(Value)
@@ -4786,6 +5022,7 @@ end
                 end
             end)
 
+            BindDependentControl(List, Self, Params)
             List:Set(List.Default)
 
             SetFlags[List.Flag] = function(Value)
@@ -4926,6 +5163,7 @@ end
                 return NewKeybind
             end
 
+            BindDependentControl(Label, Self, Params)
             Label:SetText(Label.Name)
 
             return setmetatable(Label, Library)
@@ -5089,6 +5327,7 @@ end
                 end)
             end
 
+            BindDependentControl(Textbox, Self, Params)
             Textbox:Set(Textbox.Default)
 
             SetFlags[Textbox.Flag] = function(Value)
@@ -5098,13 +5337,22 @@ end
             return setmetatable(Textbox, Library)
         end
 
-                Library.Init = function(Self)
+        -- Lowercase aliases for the compact API style.
+        Library.toggle = Library.Toggle
+        Library.slider = Library.Slider
+        Library.dropdown = Library.Dropdown
+        Library.button = Library.Button
+        Library.list = Library.List
+        Library.label = Library.Label
+        Library.textbox = Library.Textbox
+
+        Library.Init = function(Self)
             local SettingsPage = Self:Page({Name = "settings"}) do 
                 local ThemingSection = SettingsPage:Section({Name = "Theming", Side = 1}) do
                     ThemingSection:Dropdown({
                         Name = "Theme Preset",
                         Default = "Preset",
-                        Items = {"Preset", "Magma", "Navy", "Sand", "Sky"},
+                        Items = {"Preset", "Magma", "Navy", "Sand", "Sky", "BBot", "Fatality", "Jester", "Mint", "Tokyo Night", "Ubuntu", "Quartz"},
                         Callback = function(Value)
                             Library.SelectedTheme = Value
                         end
@@ -5201,27 +5449,37 @@ end
                         end
                     })
 
-                    if Self.Watermark then
-                        MenuSection:Toggle({
-                            Name = "Watermark",
-                            Flag = "Watermark",
-                            Default = true,
-                            Callback = function(Value)
-                                Self.Watermark:SetVisibility(Value)
-                            end
-                        })
+                    local WatermarkDefault = Library.Flags["Watermark"]
+                    if type(WatermarkDefault) ~= "boolean" then
+                        WatermarkDefault = true
                     end
+                    MenuSection:Toggle({
+                        Name = "Watermark",
+                        Flag = "Watermark",
+                        Default = WatermarkDefault,
+                        Callback = function(Value)
+                            local WatermarkObject = Self.WatermarkObject or Library.WatermarkObject
+                            if WatermarkObject and type(WatermarkObject.SetVisibility) == "function" then
+                                WatermarkObject:SetVisibility(Value)
+                            end
+                        end
+                    })
 
-                    if Self.KeybindList then 
-                        MenuSection:Toggle({
-                            Name = "Keybind list",
-                            Flag = "Keybind list",
-                            Default = true,
-                            Callback = function(Value)
-                                Self.KeybindList:SetVisibility(Value)
-                            end
-                        })
+                    local KeybindListDefault = Library.Flags["Keybind list"]
+                    if type(KeybindListDefault) ~= "boolean" then
+                        KeybindListDefault = true
                     end
+                    MenuSection:Toggle({
+                        Name = "Keybind list",
+                        Flag = "Keybind list",
+                        Default = KeybindListDefault,
+                        Callback = function(Value)
+                            local KeybindListObject = Self.KeybindListObject or Library.KeybindListObject or Library.KeyList
+                            if KeybindListObject and type(KeybindListObject.SetVisibility) == "function" then
+                                KeybindListObject:SetVisibility(Value)
+                            end
+                        end
+                    })
                 end
 
                 local ConfigName 
