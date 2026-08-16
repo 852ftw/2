@@ -835,6 +835,29 @@ do
                     Config[Index] = Value
                 end
             end
+
+            -- Salvar posições da Watermark e Keybind List
+            local WatermarkObj = Library.WatermarkObject
+            if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
+                local pos = WatermarkObj.Items["Watermark"].Instance.Position
+                Config["WatermarkPosition"] = {
+                    XScale = pos.X.Scale,
+                    XOffset = pos.X.Offset,
+                    YScale = pos.Y.Scale,
+                    YOffset = pos.Y.Offset
+                }
+            end
+
+            local KeybindListObj = Library.KeybindListObject or Library.KeyList
+            if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
+                local pos = KeybindListObj.Items["KeybindList"].Instance.Position
+                Config["KeybindListPosition"] = {
+                    XScale = pos.X.Scale,
+                    XOffset = pos.X.Offset,
+                    YScale = pos.Y.Scale,
+                    YOffset = pos.Y.Offset
+                }
+            end
         end)
 
         if not Success then
@@ -850,18 +873,32 @@ do
 
         local Success, Result = Library:SafeCall(function()
             for Index, Value in Decoded do 
-                local SetFunction = Library.SetFlags[Index]
-
-                if not SetFunction then
-                    continue
-                end
-
-                if type(Value) == "table" and Value.Key then 
-                    SetFunction(Value)
-                elseif type(Value) == "table" and Value.Color then
-                    SetFunction(Value.Color, Value.Alpha)
+                if Index == "WatermarkPosition" and type(Value) == "table" then
+                    local WatermarkObj = Library.WatermarkObject
+                    if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
+                        local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
+                        WatermarkObj.Items["Watermark"].Instance.Position = newPos
+                    end
+                elseif Index == "KeybindListPosition" and type(Value) == "table" then
+                    local KeybindListObj = Library.KeybindListObject or Library.KeyList
+                    if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
+                        local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
+                        KeybindListObj.Items["KeybindList"].Instance.Position = newPos
+                    end
                 else
-                    SetFunction(Value)
+                    local SetFunction = Library.SetFlags[Index]
+
+                    if not SetFunction then
+                        continue
+                    end
+
+                    if type(Value) == "table" and Value.Key then 
+                        SetFunction(Value)
+                    elseif type(Value) == "table" and Value.Color then
+                        SetFunction(Value.Color, Value.Alpha)
+                    else
+                        SetFunction(Value)
+                    end
                 end
             end
         end)
@@ -2527,6 +2564,7 @@ end
                 })
             end
         
+            KeybindList.Items = Items
             Library.KeyList = KeybindList
             Library.KeybindListObject = KeybindList
             Self.KeybindListObject = KeybindList
