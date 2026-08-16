@@ -1986,6 +1986,9 @@ Library.CreateKeybind = function(Self, Data)
     Update = function()
         if KeybindObject then
             KeybindObject:Set(Data.Name, Keybind.Mode, Keybind.Value)
+            if type(KeybindObject.SetConfigured) == "function" then
+                KeybindObject:SetConfigured(Keybind.Key ~= "" and Keybind.Value ~= "")
+            end
             KeybindObject:SetStatus(Keybind.Toggled)
         end
     end
@@ -2564,7 +2567,7 @@ end
                 local ActiveKeys = { }
 
                 for Index, Value in KeybindList.Keys do
-                    if Value.Showing then
+                    if Value.Configured and Value.Showing then
                         table.insert(ActiveKeys, Value.Object.Instance.Text)
                     end
                 end
@@ -2599,17 +2602,21 @@ end
         
                 local NewKey = {
                     Object = NewKeyText,
-                    Showing = false
+                    Showing = false,
+                    Active = false,
+                    Configured = false
                 }
         
                 table.insert(KeybindList.Keys, NewKey)
         
                 function NewKey:SetVis(Bool)
-                    CanShow = Bool
+                    CanShow = Bool == true or Bool == 1 or Bool == "true"
+                    NewKey:SetStatus(NewKey.Active)
+                end
 
-                    if not Bool then
-                        NewKey:SetStatus(false)
-                    end
+                function NewKey:SetConfigured(Bool)
+                    NewKey.Configured = Bool == true or Bool == 1 or Bool == "true"
+                    NewKey:SetStatus(NewKey.Active)
                 end
         
                 function NewKey:Set(Name, Mode, Key)
@@ -2622,15 +2629,20 @@ end
                     end)
                 end
                 function NewKey:SetStatus(Bool)
-                    Bool = Bool and CanShow
-        
-                    if NewKey.Showing == Bool then
+                    NewKey.Active = Bool == true or Bool == 1 or Bool == "true"
+                    NewKey.Object:ChangeItemTheme({TextColor3 = NewKey.Active and "Accent" or "Text"})
+                    local ShouldShow = NewKey.Configured and CanShow
+
+                    if NewKey.Showing == ShouldShow then
+                        if ShouldShow then
+                            NewKeyText.Instance.Visible = true
+                        end
                         return
                     end
         
-                    NewKey.Showing = Bool
+                    NewKey.Showing = ShouldShow
         
-                    if Bool then
+                    if ShouldShow then
                         NewKeyText.Instance.Visible = true
                         NewKeyText.Instance.Position = UDim2.new(0, 0, 0, NewKeyText.Instance.Position.Y.Offset)
                         NewKeyText.Instance.TextTransparency = 1
