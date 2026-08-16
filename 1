@@ -866,6 +866,14 @@ do
             end
         end)
 
+        if Success then
+            for _, Keybind in Library.KeybindRegistry do
+                if Keybind and type(Keybind.RefreshKeybindList) == "function" then
+                    Keybind:RefreshKeybindList()
+                end
+            end
+        end
+
         return Success, Result
     end
 
@@ -1990,6 +1998,12 @@ Library.CreateKeybind = function(Self, Data)
                 KeybindObject:SetConfigured(Keybind.Key ~= "" and Keybind.Value ~= "")
             end
             KeybindObject:SetStatus(Keybind.Toggled)
+        end
+    end
+
+    function Keybind:RefreshKeybindList()
+        if KeybindObject then
+            Update()
         end
     end
 
