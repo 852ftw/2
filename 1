@@ -836,28 +836,22 @@ do
                 end
             end
 
-            -- Salvar posições da Watermark e Keybind List
-            local WatermarkObj = Library.WatermarkObject
-            if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
-                local pos = WatermarkObj.Items["Watermark"].Instance.Position
-                Config["WatermarkPosition"] = {
-                    XScale = pos.X.Scale,
-                    XOffset = pos.X.Offset,
-                    YScale = pos.Y.Scale,
-                    YOffset = pos.Y.Offset
-                }
-            end
+            local WatermarkObj = Library.WatermarkObject or (Library.Holder and Library.Holder.Instance and Library.Holder.Instance:FindFirstChild("Watermark"))
+            -- Alternatively, check if we can get position from any reference
+            pcall(function()
+                if Library.WatermarkObject and Library.WatermarkObject.Items and Library.WatermarkObject.Items["Watermark"] and Library.WatermarkObject.Items["Watermark"].Instance then
+                    local pos = Library.WatermarkObject.Items["Watermark"].Instance.Position
+                    Config["WatermarkPosition"] = {XScale = pos.X.Scale, XOffset = pos.X.Offset, YScale = pos.Y.Scale, YOffset = pos.Y.Offset}
+                end
+            end)
 
-            local KeybindListObj = Library.KeybindListObject or Library.KeyList
-            if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
-                local pos = KeybindListObj.Items["KeybindList"].Instance.Position
-                Config["KeybindListPosition"] = {
-                    XScale = pos.X.Scale,
-                    XOffset = pos.X.Offset,
-                    YScale = pos.Y.Scale,
-                    YOffset = pos.Y.Offset
-                }
-            end
+            pcall(function()
+                local kl = Library.KeybindListObject or Library.KeyList
+                if kl and kl.Items and kl.Items["KeybindList"] and kl.Items["KeybindList"].Instance then
+                    local pos = kl.Items["KeybindList"].Instance.Position
+                    Config["KeybindListPosition"] = {XScale = pos.X.Scale, XOffset = pos.X.Offset, YScale = pos.Y.Scale, YOffset = pos.Y.Offset}
+                end
+            end)
         end)
 
         if not Success then
@@ -874,17 +868,21 @@ do
         local Success, Result = Library:SafeCall(function()
             for Index, Value in Decoded do 
                 if Index == "WatermarkPosition" and type(Value) == "table" then
-                    local WatermarkObj = Library.WatermarkObject
-                    if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
-                        local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
-                        WatermarkObj.Items["Watermark"].Instance.Position = newPos
-                    end
+                    pcall(function()
+                        local WatermarkObj = Library.WatermarkObject
+                        if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
+                            local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
+                            WatermarkObj.Items["Watermark"].Instance.Position = newPos
+                        end
+                    end)
                 elseif Index == "KeybindListPosition" and type(Value) == "table" then
-                    local KeybindListObj = Library.KeybindListObject or Library.KeyList
-                    if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
-                        local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
-                        KeybindListObj.Items["KeybindList"].Instance.Position = newPos
-                    end
+                    pcall(function()
+                        local KeybindListObj = Library.KeybindListObject or Library.KeyList
+                        if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
+                            local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
+                            KeybindListObj.Items["KeybindList"].Instance.Position = newPos
+                        end
+                    end)
                 else
                     local SetFunction = Library.SetFlags[Index]
 
