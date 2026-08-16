@@ -2693,11 +2693,13 @@ end
 
         Library.Notification = function(Self, Name, Duration, Color)
             Duration = Duration or 5
+            local UseAccentColor = Color == nil or Color == Library.Theme.Accent
             Color = Color or Library.Theme.Accent
         
             local Notification = {
                 Duration = Duration,
                 Removing = false,
+                AccentColor = UseAccentColor,
                 Items = {}
             }
         
@@ -2833,7 +2835,9 @@ end
                     Size = UDim2.new(0, 1, 1, 0),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Color
-                })
+                }):AddToTheme({BackgroundColor3 = function()
+                    return Notification.AccentColor and Library.Theme["Accent"] or Color
+                end})
         
                 Items["DurationLiner"] = Library:Create("Frame", {
                     Name = "\0",
@@ -2842,9 +2846,28 @@ end
                     Size = UDim2.new(1, 16, 0, 1),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Color
-                })
+                }):AddToTheme({BackgroundColor3 = function()
+                    return Notification.AccentColor and Library.Theme["Accent"] or Color
+                end})
         
                 Notification.Items = Items
+
+                function Notification:UpdateAccentColor()
+                    if not Notification.AccentColor then
+                        return
+                    end
+
+                    local Accent = Library.Theme["Accent"]
+                    if not Accent then
+                        return
+                    end
+
+                    for _, Item in {Items["Liner"], Items["DurationLiner"]} do
+                        if Item and Item.Instance then
+                            Item.Instance.BackgroundColor3 = Accent
+                        end
+                    end
+                end
             end
         
             local FadeNotification = function(Transparency) -- cant use fadedescendants because that one saves the transparency and it breaks and looks really gay 
@@ -2862,6 +2885,7 @@ end
             end
         
             table.insert(Library.Notifications, 1, Notification)
+            Notification:UpdateAccentColor()
         
             task.wait()
         
@@ -3140,6 +3164,12 @@ end
                     local hue = (tick() % 5) / 5
                     local color = Color3.fromHSV(hue, 1, 1)
                     Library:ChangeTheme("Accent", color)
+                end
+
+                for _, Notification in Library.Notifications do
+                    if Notification and type(Notification.UpdateAccentColor) == "function" then
+                        Notification:UpdateAccentColor()
+                    end
                 end
 
                 if not Library.AnimatedTitle then 
