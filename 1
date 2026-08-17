@@ -5382,10 +5382,27 @@ end
             if (not name) then return false, "no config file is selected" end
             local fullPath = Library.Directory .. Library.Folders.Configs .. "/" .. name .. ".json"
             
-            local data = { objects = {} }
+            local data = { 
+                objects = {},
+                Theme = Library.SelectedTheme,
+                MenuScale = Library.MenuScale
+            }
+
             for idx, val in next, Library.Flags do
                 if self.Ignore[idx] then continue end
-                table.insert(data.objects, { idx = idx, value = val })
+                
+                -- Salva tabelas (ColorPickers, Keybinds) corretamente
+                if type(val) == "table" then
+                    if val.Color then
+                        table.insert(data.objects, { idx = idx, value = { Color = "#" .. val.HexValue, Alpha = val.Alpha } })
+                    elseif val.Key then
+                        table.insert(data.objects, { idx = idx, value = { Key = tostring(val.Key), Mode = val.Mode, Toggled = val.Toggled } })
+                    else
+                        table.insert(data.objects, { idx = idx, value = val })
+                    end
+                else
+                    table.insert(data.objects, { idx = idx, value = val })
+                end
             end
 
             local success, encoded = pcall(HttpService.JSONEncode, HttpService, data)
@@ -5403,6 +5420,7 @@ end
             local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(file))
             if not success then return false, "decode error" end
 
+            -- Carrega flags normais
             for _, option in next, decoded.objects do
                 if Library.SetFlags[option.idx] then
                     task.spawn(function() 
@@ -5410,6 +5428,24 @@ end
                     end)
                 end
             end
+
+            -- Carrega e aplica o Tema
+            if decoded.Theme and Themes[decoded.Theme] then
+                Library.SelectedTheme = decoded.Theme
+                Library.Theme = Themes[decoded.Theme]
+                for ThemeKey, ColorValue in pairs(Library.Theme) do
+                    Library:ChangeTheme(ThemeKey, ColorValue)
+                end
+            end
+
+            -- Carrega e aplica o Menu Scale
+            if decoded.MenuScale then
+                Library.MenuScale = decoded.MenuScale
+                if Library.MenuScaleObject then
+                    Library.MenuScaleObject.Scale = decoded.MenuScale
+                end
+            end
+
             return true
         end
 
@@ -5496,9 +5532,15 @@ end
             local AutoloadPath = Library.Directory .. "/autoload.json"
             if isfile(AutoloadPath) then
                 local Manifest = readfile(AutoloadPath)
+                if Manifest == "" then return end
                 local DecodeOk, Data = pcall(HttpService.JSONDecode, HttpService, Manifest)
                 if DecodeOk and type(Data) == "table" and Data.Config then
-                    self:Load(Data.Config)
+                    task.spawn(function()
+                        local success, err = self:Load(Data.Config)
+                        if success then
+                            Library:Notification("Auto loaded config: " .. Data.Config, 3)
+                        end
+                    end)
                 end
             end
         end
@@ -5561,7 +5603,7 @@ end
                     })
 
                     local ScaleValue = math.floor(Library.MenuScale * 100)
-                    MenuSection:Textbox({
+                    local ScaleTextbox = MenuSection:Textbox({
                         Name = "Menu Scale (%)",
                         Flag = "MenuScale",
                         Default = tostring(ScaleValue),
@@ -5583,6 +5625,17 @@ end
                         end
                     })
 
+                    -- Permite que o SetFlags atualize o valor interno e a interface
+                    Library.SetFlags["MenuScale"] = function(Value)
+                        ScaleValue = tonumber(Value) or 100
+                        ScaleTextbox:Set(tostring(ScaleValue))
+                        local scaleVal = math.clamp(ScaleValue / 100, 0.2, 3.0)
+                        Library.MenuScale = scaleVal
+                        if Library.MenuScaleObject then
+                            Library.MenuScaleObject.Scale = scaleVal
+                        end
+                    end
+
                     MenuSection:Toggle({
                         Name = "Accent RGB",
                         Flag = "AccentRGB",
@@ -5591,6 +5644,11 @@ end
                             Library.AccentRGB = Value
                         end
                     })
+
+                    Library.SetFlags["AccentRGB"] = function(Value)
+                        Library.Flags["AccentRGB"] = Value
+                        Library.AccentRGB = Value
+                    end
 
                     MenuSection:Toggle({
                         Name = "Animated Title",
