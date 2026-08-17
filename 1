@@ -202,19 +202,28 @@ do
         ["RightAlt"]          = "RightAlt"
     }
 
-    -- Folders
-    if not isfolder(Library.Directory) then 
-        makefolder(Library.Directory)
-    end
+    -- Folders Creation Logic moved to Library:SetFolder
+    function Library:BuildFolderTree()
+        if not self.Directory or self.Directory == "" then return end
+        
+        if not isfolder(self.Directory) then 
+            makefolder(self.Directory)
+        end
 
-    for _, Folder in Library.Folders do 
-        if not isfolder(Library.Directory .. Folder) then 
-            makefolder(Library.Directory .. Folder)
+        for _, Folder in pairs(self.Folders) do 
+            if not isfolder(self.Directory .. Folder) then 
+                makefolder(self.Directory .. Folder)
+            end
         end
     end
 
-    if not isfile(Library.Directory .. "/autoload.json") then 
-        writefile(Library.Directory .. "/autoload.json", "")
+    function Library:SetFolder(Name)
+        self.Directory = Name
+        self:BuildFolderTree()
+        
+        if self.SaveManager then
+            self.SaveManager.Folder = Name
+        end
     end
 
         local Themes = {
@@ -5348,7 +5357,7 @@ end
         Library.textbox = Library.Textbox
 
     local SaveManager = {} do
-        SaveManager.Folder = Library.Directory
+        SaveManager.Folder = Library.Directory or "AkkoMenu"
         SaveManager.Ignore = {}
         
         function SaveManager:SetIgnoreIndexes(list)
@@ -5385,8 +5394,27 @@ end
             local data = { 
                 objects = {},
                 Theme = Library.SelectedTheme,
-                MenuScale = Library.MenuScale
+                MenuScale = Library.MenuScale,
+                Positions = {}
             }
+
+            -- Salva posição da Watermark
+            pcall(function()
+                local wm = Library.WatermarkObject
+                if wm and wm.Items and wm.Items["Watermark"] and wm.Items["Watermark"].Instance then
+                    local pos = wm.Items["Watermark"].Instance.Position
+                    data.Positions.Watermark = { pos.X.Scale, pos.X.Offset, pos.Y.Scale, pos.Y.Offset }
+                end
+            end)
+
+            -- Salva posição da Keybind List
+            pcall(function()
+                local kl = Library.KeyList
+                if kl and kl.Items and kl.Items["KeybindList"] and kl.Items["KeybindList"].Instance then
+                    local pos = kl.Items["KeybindList"].Instance.Position
+                    data.Positions.KeybindList = { pos.X.Scale, pos.X.Offset, pos.Y.Scale, pos.Y.Offset }
+                end
+            end)
 
             for idx, val in next, Library.Flags do
                 if self.Ignore[idx] then continue end
@@ -5449,6 +5477,28 @@ end
                 if Library.MenuScaleObject then
                     Library.MenuScaleObject.Scale = decoded.MenuScale
                 end
+            end
+
+            -- Carrega e aplica posições
+            if decoded.Positions then
+                pcall(function()
+                    if decoded.Positions.Watermark then
+                        local wm = Library.WatermarkObject
+                        if wm and wm.Items and wm.Items["Watermark"] and wm.Items["Watermark"].Instance then
+                            local p = decoded.Positions.Watermark
+                            wm.Items["Watermark"].Instance.Position = UDim2.new(p[1], p[2], p[3], p[4])
+                        end
+                    end
+                end)
+                pcall(function()
+                    if decoded.Positions.KeybindList then
+                        local kl = Library.KeyList
+                        if kl and kl.Items and kl.Items["KeybindList"] and kl.Items["KeybindList"].Instance then
+                            local p = decoded.Positions.KeybindList
+                            kl.Items["KeybindList"].Instance.Position = UDim2.new(p[1], p[2], p[3], p[4])
+                        end
+                    end
+                end)
             end
 
             return true
