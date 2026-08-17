@@ -96,6 +96,27 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 
 gethui = gethui or function() return CoreGui end
 
+-- Acesso seguro aos wrappers da library.
+local function SafeWrapperInstance(wrapper)
+    if type(wrapper) ~= "table" then
+        return nil
+    end
+    local ok, object = pcall(rawget, wrapper, "Instance")
+    if not ok or typeof(object) ~= "Instance" then
+        return nil
+    end
+    return object
+end
+
+local function SafeProperty(object, property, value)
+    if typeof(object) ~= "Instance" then
+        return false
+    end
+    return pcall(function()
+        object[property] = value
+    end)
+end
+
 local LocalPlayer = Players.LocalPlayer
 local IsMobile = UserInputService.TouchEnabled or false
 local GuiInset = GuiService:GetGuiInset().Y
@@ -468,10 +489,10 @@ do
     Library.Connect = function(Self, Signal, Callback)
         local Connection
 
-        if Self.Instance then
-            if Self.Instance[Signal] then 
+        if SafeWrapperInstance(Self) then
+            if SafeWrapperInstance(Self)[Signal] then 
                 if IsMobile and Signal == "MouseButton1Down" then 
-                    Connection = Self.Instance.InputBegan:Connect(function(Input)
+                    Connection = SafeWrapperInstance(Self).InputBegan:Connect(function(Input)
                         if Input.UserInputType == Enum.UserInputType.Touch or Input.UserInputType == Enum.UserInputType.MouseButton1 then
                             Callback(Input)
                         end
@@ -480,7 +501,11 @@ do
                     return
                 end
                 
-                Connection = Self.Instance[Signal]:Connect(Callback)
+                local Object = SafeWrapperInstance(Self)
+                if not Object then
+                    return nil
+                end
+                Connection = Object[Signal]:Connect(Callback)
             else
                 Connection = Signal:Connect(Callback)
             end
@@ -495,7 +520,7 @@ do
     Library.Tween = function(Self, Properties, Info, IsRawItem)
         if not Library then return end 
 
-        local Object = Self.Instance or IsRawItem
+        local Object = SafeWrapperInstance(Self) or IsRawItem
         Info = Info or TweenInfo.new(Library.Animation.Time, Enum.EasingStyle[Library.Animation.Style], Enum.EasingDirection[Library.Animation.Direction])
 
         if not Object then 
@@ -509,7 +534,7 @@ do
     end
 
     Library.GetTweenProperty = function(Self, IsRawItem)
-        local Object = Self.Instance or IsRawItem
+        local Object = SafeWrapperInstance(Self) or IsRawItem
 
         if not Object then 
             return { }
@@ -531,7 +556,7 @@ do
     end
 
     Library.Fade = function(Self, Property, Visibility, IsRawItem)
-        local Object = Self.Instance or IsRawItem
+        local Object = SafeWrapperInstance(Self) or IsRawItem
 
         if not Object then 
             return 
@@ -554,13 +579,13 @@ do
 
     Library.FadeDescendants = function(Self, Visibility, Callback)
         if Visibility then 
-            Self.Instance.Visible = true 
+            SafeWrapperInstance(Self).Visible = true 
         end
 
         local NewTween 
 
-        local Children = Self.Instance:GetDescendants()
-        table.insert(Children, Self.Instance)
+        local Children = SafeWrapperInstance(Self):GetDescendants()
+        table.insert(Children, SafeWrapperInstance(Self))
 
         for _, Child in Children do 
             local TransparencyProperty = Library:GetTweenProperty(Child)
@@ -583,16 +608,16 @@ do
                 Callback()
             end
 
-            Self.Instance.Visible = Visibility
+            SafeWrapperInstance(Self).Visible = Visibility
         end)
     end
 
     Library.MakeDraggable = function(Self)
-        if not Self.Instance then 
+        if not SafeWrapperInstance(Self) then 
             return
         end
     
-        local Gui = Self.Instance
+        local Gui = SafeWrapperInstance(Self)
         local Dragging = false 
         local DragStart
         local StartPosition 
@@ -651,11 +676,11 @@ do
     end
 
     Library.MakeResizeable = function(Self, Minimum)
-        if not Self.Instance then 
+        if not SafeWrapperInstance(Self) then 
             return
         end
 
-        local Gui = Self.Instance
+        local Gui = SafeWrapperInstance(Self)
 
         local Resizing = false 
         local CurrentSide = nil
@@ -793,11 +818,11 @@ do
     end
 
     Library.IsMouseOverFrame = function(Self)
-        if not Self.Instance then 
+        if not SafeWrapperInstance(Self) then 
             return 
         end
 
-        local Object = Self.Instance
+        local Object = SafeWrapperInstance(Self)
 
         local MousePosition = Vector2.new(Mouse.X, Mouse.Y)
 
@@ -864,7 +889,14 @@ do
     end
 
     Library.LoadConfig = function(Self, Config)
-        local Decoded = HttpService:JSONDecode(Config)
+        if type(Config) ~= "string" or Config:match("^%s*$") then
+            return false, "Configuração vazia ou inválida"
+        end
+
+        local DecodeOk, Decoded = pcall(HttpService.JSONDecode, HttpService, Config)
+        if not DecodeOk or type(Decoded) ~= "table" then
+            return false, "JSON de configuração inválido"
+        end
 
         local Success, Result = Library:SafeCall(function()
             for Index, Value in Decoded do 
@@ -905,7 +937,9 @@ do
         if Success then
             for _, Keybind in Library.KeybindRegistry do
                 if Keybind and type(Keybind.RefreshKeybindList) == "function" then
+                    pcall(function()
                     Keybind:RefreshKeybindList()
+                end)
                 end
             end
         end
@@ -974,11 +1008,11 @@ do
     end
 
     Library.AddToTheme = function(Self, Properties)
-        if not Self or not Self.Instance then
+        if not Self or not SafeWrapperInstance(Self) then
             warn("[Library] AddToTheme called with nil Self/Instance")
             return Self
         end
-        local Object = Self.Instance
+        local Object = SafeWrapperInstance(Self)
 
         local ThemeData = {
             Item = Object,
@@ -1006,11 +1040,11 @@ do
     end
 
     Library.ChangeItemTheme = function(Self, Properties)
-        if not Self or not Self.Instance then
+        if not Self or not SafeWrapperInstance(Self) then
             return Self
         end
 
-        local Object = Self.Instance
+        local Object = SafeWrapperInstance(Self)
         local ThemeMap = Library.ThemeMap
         if type(ThemeMap) ~= "table" or not ThemeMap[Object] then
             return Self
@@ -1026,16 +1060,16 @@ do
         for _, Item in Library.ThemingStuff do
             for Property, Value in Item.Properties do
                 if type(Value) == "string" and Value == Theme then
-                    Item.Item[Property] = Color
+                    SafeProperty(Item.Item, Property, Color)
                 elseif type(Value) == "function" then
-                    Item.Item[Property] = Value()
+                    do local ok, result = pcall(Value); if ok then SafeProperty(Item.Item, Property, result) end end
                 end
             end
         end
     end
 
     Library.OnHover = function(Self, OnHoverEnter, OnHoverLeave)
-        local Object = Self.Instance
+        local Object = SafeWrapperInstance(Self)
 
         if not Object then 
             return 
@@ -1048,7 +1082,11 @@ do
     Library.GetScreenScale = function(Self)
         local Scale = 1
     
-        for _, Obj in Library.Holder.Instance:GetDescendants() do
+        local holder = Library.Holder and SafeWrapperInstance(Library.Holder)
+        if not holder then
+            return 1
+        end
+        for _, Obj in holder:GetDescendants() do
             if Obj:IsA("UIScale") then
                 Scale *= Obj.Scale
             end
@@ -1068,7 +1106,7 @@ do
     end
 
     Library.VisibleCheck = function(Self)
-        local Object = Self.Instance 
+        local Object = SafeWrapperInstance(Self) 
 
         if not Object then 
             return 
@@ -5726,11 +5764,7 @@ end
                     })
                 end
 
-                local AutoloadContent = readfile(Library.Directory .. "/autoload.json")
-
-                if AutoloadContent ~= "" then 
-                    Library:LoadConfig(AutoloadContent)
-                end
+                -- Autoload executado pelo script principal após a construção completa da UI.
             end
         end
     end
