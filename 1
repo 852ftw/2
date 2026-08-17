@@ -1976,6 +1976,15 @@ Library.CreateKeybind = function(Self, Data)
         end
     })
 
+    Library:Button({
+        Name = "Clear Keybind",
+        Parent = Items["KeybindWindow"],
+        Callback = function()
+            Keybind:Set("")
+            Keybind:SetOpen(false)
+        end
+    })
+
     function Keybind:Press(Bool)
         if Keybind.Mode == "Toggle" then 
             Keybind.Toggled = not Keybind.Toggled
@@ -3635,10 +3644,10 @@ end
                 Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme["Element 2"]})
             end)
 
-            function Toggle:Set(Bool)
+            function Toggle:Set(Bool, IgnoreCallback)
                 Bool = IsEnabled(Bool)
                 Toggle.Value = Bool 
-
+                
                 if Bool then 
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Accent"})
                     Items["Indicator"]:Tween({BackgroundColor3 = Library.Theme.Accent})
@@ -3649,7 +3658,10 @@ end
 
                 Flags[Toggle.Flag] = Bool
                 UpdateDependents(Toggle)
-                Library:SafeCall(Toggle.Callback, Bool)
+                
+                if not IgnoreCallback then
+                    Library:SafeCall(Toggle.Callback, Bool)
+                end
             end
 
             function Toggle:SetVisibility(Bool)
@@ -3726,8 +3738,8 @@ end
             BindDependentControl(Toggle, Self, Params)
             Toggle:Set(Toggle.Default)
 
-            SetFlags[Toggle.Flag] = function(Value)
-                Toggle:Set(Value)
+            SetFlags[Toggle.Flag] = function(Value, IgnoreCallback)
+                Toggle:Set(Value, IgnoreCallback)
             end
             
             Library.SetFlags["MenuScale"] = function(Value)
@@ -5457,7 +5469,8 @@ end
                         if type(val) == "table" and val.Color then
                             pcall(Library.SetFlags[option.idx], Color3.fromHex(val.Color), val.Alpha)
                         else
-                            pcall(Library.SetFlags[option.idx], val)
+                            -- Passamos true como segundo argumento para ignorar o callback e não ativar as funções sozinho
+                            pcall(Library.SetFlags[option.idx], val, true)
                         end
                     end)
                 end
@@ -5637,7 +5650,15 @@ end
                 return 
             end
 
-            local SettingsPage = target:Page({Name = "settings"}) do 
+            -- Evita criar abas duplicadas se o Init for chamado múltiplas vezes
+            if target.SettingsInitialized then
+                return
+            end
+            target.SettingsInitialized = true
+
+            local SettingsPage = target:Page({Name = "settings"})
+
+            do 
                 local ThemingSection = SettingsPage:Section({Name = "Theming", Side = 1}) do
                     ThemingSection:Dropdown({
                         Name = "Theme Preset",
