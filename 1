@@ -5424,7 +5424,12 @@ end
             for _, option in next, decoded.objects do
                 if Library.SetFlags[option.idx] then
                     task.spawn(function() 
-                        pcall(Library.SetFlags[option.idx], option.value)
+                        local val = option.value
+                        if type(val) == "table" and val.Color then
+                            pcall(Library.SetFlags[option.idx], Color3.fromHex(val.Color), val.Alpha)
+                        else
+                            pcall(Library.SetFlags[option.idx], val)
+                        end
                     end)
                 end
             end
@@ -5521,6 +5526,32 @@ end
                     if name then
                         writefile(Library.Directory .. "/autoload.json", HttpService:JSONEncode({Config = name}))
                         Library:Notification(string.format("Set %q to auto load", name))
+                    end
+                end
+            })
+
+            section:Button({
+                Name = "Remove autoload",
+                Callback = function()
+                    local AutoloadPath = Library.Directory .. "/autoload.json"
+                    if isfile(AutoloadPath) then
+                        delfile(AutoloadPath)
+                        Library:Notification("Removed autoload")
+                    end
+                end
+            })
+
+            section:Button({
+                Name = "Delete config",
+                Callback = function()
+                    local name = Library.Flags.SaveManager_ConfigList
+                    if name then
+                        local file = Library.Directory .. Library.Folders.Configs .. "/" .. name .. ".json"
+                        if isfile(file) then
+                            delfile(file)
+                            Library:Notification(string.format("Deleted config %q", name))
+                            ConfigList:Refresh(self:RefreshConfigList())
+                        end
                     end
                 end
             })
