@@ -847,165 +847,6 @@ do
         return math.floor(Number * Multiplier) / Multiplier
     end
 
-    Library.GetConfig = function(Self)
-        local Config = { }
-
-        local Success, Result = Library:SafeCall(function()
-            for Index, Value in Library.Flags do 
-                if type(Value) == "table" and Value.Key then
-                    Config[Index] = {Key = tostring(Value.Key), Mode = Value.Mode, Toggled = Value.Toggled}
-                elseif type(Value) == "table" and Value.Color then
-                    Config[Index] = {Color = "#" .. Value.HexValue, Alpha = Value.Alpha}
-                else
-                    Config[Index] = Value
-                end
-            end
-
-            local WatermarkObj = Library.WatermarkObject or (Library.Holder and Library.Holder.Instance and Library.Holder.Instance:FindFirstChild("Watermark"))
-            -- Alternatively, check if we can get position from any reference
-            pcall(function()
-                if Library.WatermarkObject and Library.WatermarkObject.Items and Library.WatermarkObject.Items["Watermark"] and Library.WatermarkObject.Items["Watermark"].Instance then
-                    local pos = Library.WatermarkObject.Items["Watermark"].Instance.Position
-                    Config["WatermarkPosition"] = {XScale = pos.X.Scale, XOffset = pos.X.Offset, YScale = pos.Y.Scale, YOffset = pos.Y.Offset}
-                end
-            end)
-
-            pcall(function()
-                local kl = Library.KeybindListObject or Library.KeyList
-                if kl and kl.Items and kl.Items["KeybindList"] and kl.Items["KeybindList"].Instance then
-                    local pos = kl.Items["KeybindList"].Instance.Position
-                    Config["KeybindListPosition"] = {XScale = pos.X.Scale, XOffset = pos.X.Offset, YScale = pos.Y.Scale, YOffset = pos.Y.Offset}
-                end
-            end)
-        end)
-
-        if not Success then
-            warn("Failed to get config:\n" .. tostring(Result or "unknown error"))
-            return nil, Result or "unknown error"
-
-        end
-
-        return HttpService:JSONEncode(Config)
-    end
-
-    Library.LoadConfig = function(Self, Config)
-        if type(Config) ~= "string" or Config:match("^%s*$") then
-            return false, "Configuração vazia ou inválida"
-        end
-
-        local DecodeOk, Decoded = pcall(HttpService.JSONDecode, HttpService, Config)
-        if not DecodeOk or type(Decoded) ~= "table" then
-            return false, "JSON de configuração inválido"
-        end
-
-        local Success, Result = Library:SafeCall(function()
-            for Index, Value in Decoded do 
-                if Index == "WatermarkPosition" and type(Value) == "table" then
-                    pcall(function()
-                        local WatermarkObj = Library.WatermarkObject
-                        if WatermarkObj and WatermarkObj.Items and WatermarkObj.Items["Watermark"] and WatermarkObj.Items["Watermark"].Instance then
-                            local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
-                            WatermarkObj.Items["Watermark"].Instance.Position = newPos
-                        end
-                    end)
-                elseif Index == "KeybindListPosition" and type(Value) == "table" then
-                    pcall(function()
-                        local KeybindListObj = Library.KeybindListObject or Library.KeyList
-                        if KeybindListObj and KeybindListObj.Items and KeybindListObj.Items["KeybindList"] and KeybindListObj.Items["KeybindList"].Instance then
-                            local newPos = UDim2.new(Value.XScale or 0, Value.XOffset or 0, Value.YScale or 0, Value.YOffset or 0)
-                            KeybindListObj.Items["KeybindList"].Instance.Position = newPos
-                        end
-                    end)
-                else
-                    local SetFunction = Library.SetFlags[Index]
-
-                    if not SetFunction then
-                        continue
-                    end
-
-                    if type(Value) == "table" and Value.Key then 
-                        SetFunction(Value)
-                    elseif type(Value) == "table" and Value.Color then
-                        SetFunction(Value.Color, Value.Alpha)
-                    else
-                        SetFunction(Value)
-                    end
-                end
-            end
-        end)
-
-        if Success then
-            for _, Keybind in Library.KeybindRegistry do
-                if Keybind and type(Keybind.RefreshKeybindList) == "function" then
-                    pcall(function()
-                    Keybind:RefreshKeybindList()
-                end)
-                end
-            end
-        end
-
-        return Success, Result
-    end
-
-    -- Deve ser chamado depois que o menu registrar todos os SetFlags.
-    -- O arquivo salva o nome da config, evitando cópias silenciosamente inválidas.
-    Library.LoadAutoload = function(Self)
-        local AutoloadPath = Library.Directory .. "/autoload.json"
-        if not isfile(AutoloadPath) then
-            return false, "Arquivo de autoload não existe"
-        end
-
-        local Manifest = readfile(AutoloadPath)
-        if Manifest:match("^%s*$") then
-            return false, "Nenhum autoload definido"
-        end
-
-        local DecodeOk, Data = pcall(HttpService.JSONDecode, HttpService, Manifest)
-        if not DecodeOk or type(Data) ~= "table" or type(Data.Config) ~= "string" or Data.Config == "" then
-            return false, "Manifesto de autoload inválido"
-        end
-
-        local ConfigPath = Library.Directory .. Library.Folders.Configs .. "/" .. Data.Config .. ".json"
-        if not isfile(ConfigPath) then
-            return false, "Config de autoload não existe: " .. Data.Config
-        end
-
-        local ConfigContent = readfile(ConfigPath)
-        local Success, Error = Self:LoadConfig(ConfigContent)
-        if not Success then
-            return false, Error
-        end
-
-        return true, Data.Config
-    end
-
-    Library.GetConfigsList = function(Self, Element)
-        local List = { }
-        local ReturnList = { }
-
-        List = listfiles(Library.Directory .. Library.Folders.Configs)
-
-        for Index = 1, #List do 
-            local File = List[Index]
-
-            if File:sub(-5) == ".json" then
-                local Position = File:find(".json", 1, true)
-                local StartPosition = Position
-
-                local Character = File:sub(Position, Position)
-                while Character ~= "/" and Character ~= "\\" and Character ~= "" do
-                    Position = Position - 1
-                    Character = File:sub(Position, Position)
-                end
-
-                if Character == "/" or Character == "\\" then
-                    table.insert(ReturnList, File:sub(Position + 1, StartPosition - 1))
-                end
-            end
-        end
-
-        Element:Refresh(ReturnList)
-    end
 
     Library.AddToTheme = function(Self, Properties)
         if not Self or not SafeWrapperInstance(Self) then
@@ -5506,6 +5347,165 @@ end
         Library.label = Library.Label
         Library.textbox = Library.Textbox
 
+    local SaveManager = {} do
+        SaveManager.Folder = Library.Directory
+        SaveManager.Ignore = {}
+        
+        function SaveManager:SetIgnoreIndexes(list)
+            for _, key in next, list do
+                self.Ignore[key] = true
+            end
+        end
+
+        function SaveManager:RefreshConfigList()
+            local list = listfiles(Library.Directory .. Library.Folders.Configs)
+            local out = {}
+            for i = 1, #list do
+                local file = list[i]
+                if file:sub(-5) == ".json" then
+                    local pos = file:find(".json", 1, true)
+                    local start = pos
+                    local char = file:sub(pos, pos)
+                    while char ~= "/" and char ~= "\\" and char ~= "" do
+                        pos = pos - 1
+                        char = file:sub(pos, pos)
+                    end
+                    if char == "/" or char == "\\" then
+                        table.insert(out, file:sub(pos + 1, start - 1))
+                    end
+                end
+            end
+            return out
+        end
+
+        function SaveManager:Save(name)
+            if (not name) then return false, "no config file is selected" end
+            local fullPath = Library.Directory .. Library.Folders.Configs .. "/" .. name .. ".json"
+            
+            local data = { objects = {} }
+            for idx, val in next, Library.Flags do
+                if self.Ignore[idx] then continue end
+                table.insert(data.objects, { idx = idx, value = val })
+            end
+
+            local success, encoded = pcall(HttpService.JSONEncode, HttpService, data)
+            if not success then return false, "failed to encode data" end
+
+            writefile(fullPath, encoded)
+            return true
+        end
+
+        function SaveManager:Load(name)
+            if (not name) then return false, "no config file is selected" end
+            local file = Library.Directory .. Library.Folders.Configs .. "/" .. name .. ".json"
+            if not isfile(file) then return false, "invalid file" end
+
+            local success, decoded = pcall(HttpService.JSONDecode, HttpService, readfile(file))
+            if not success then return false, "decode error" end
+
+            for _, option in next, decoded.objects do
+                if Library.SetFlags[option.idx] then
+                    task.spawn(function() 
+                        pcall(Library.SetFlags[option.idx], option.value)
+                    end)
+                end
+            end
+            return true
+        end
+
+        function SaveManager:BuildConfigSection(tab)
+            local section = tab:Section({Name = "Configuration", Side = 3})
+            
+            section:Textbox({
+                Name = "Config name",
+                Flag = "SaveManager_ConfigName",
+                Placeholder = "Config name"
+            })
+
+            local ConfigList = section:Dropdown({
+                Name = "Config list",
+                Flag = "SaveManager_ConfigList",
+                Items = self:RefreshConfigList(),
+                AllowNull = true
+            })
+
+            section:Button({
+                Name = "Create config",
+                Callback = function()
+                    local name = Library.Flags.SaveManager_ConfigName
+                    if not name or name:gsub(" ", "") == "" then 
+                        return Library:Notification("Invalid config name (empty)", 2)
+                    end
+
+                    local success, err = self:Save(name)
+                    if not success then
+                        return Library:Notification("Failed to save config: " .. tostring(err))
+                    end
+
+                    Library:Notification(string.format("Created config %q", name))
+                    ConfigList:Refresh(self:RefreshConfigList())
+                end
+            })
+
+            section:Button({
+                Name = "Load config",
+                Callback = function()
+                    local name = Library.Flags.SaveManager_ConfigList
+                    local success, err = self:Load(name)
+                    if not success then
+                        return Library:Notification("Failed to load config: " .. tostring(err))
+                    end
+                    Library:Notification(string.format("Loaded config %q", name))
+                end
+            })
+
+            section:Button({
+                Name = "Overwrite config",
+                Callback = function()
+                    local name = Library.Flags.SaveManager_ConfigList
+                    local success, err = self:Save(name)
+                    if not success then
+                        return Library:Notification("Failed to overwrite config: " .. tostring(err))
+                    end
+                    Library:Notification(string.format("Overwrote config %q", name))
+                end
+            })
+
+            section:Button({
+                Name = "Refresh list",
+                Callback = function()
+                    ConfigList:Refresh(self:RefreshConfigList())
+                end
+            })
+
+            section:Button({
+                Name = "Set as autoload",
+                Callback = function()
+                    local name = Library.Flags.SaveManager_ConfigList
+                    if name then
+                        writefile(Library.Directory .. "/autoload.json", HttpService:JSONEncode({Config = name}))
+                        Library:Notification(string.format("Set %q to auto load", name))
+                    end
+                end
+            })
+            
+            self:SetIgnoreIndexes({ "SaveManager_ConfigList", "SaveManager_ConfigName" })
+        end
+        
+        function SaveManager:LoadAutoloadConfig()
+            local AutoloadPath = Library.Directory .. "/autoload.json"
+            if isfile(AutoloadPath) then
+                local Manifest = readfile(AutoloadPath)
+                local DecodeOk, Data = pcall(HttpService.JSONDecode, HttpService, Manifest)
+                if DecodeOk and type(Data) == "table" and Data.Config then
+                    self:Load(Data.Config)
+                end
+            end
+        end
+
+        Library.SaveManager = SaveManager
+    end
+
         Library.Init = function(Self)
             local SettingsPage = Self:Page({Name = "settings"}) do 
                 local ThemingSection = SettingsPage:Section({Name = "Theming", Side = 1}) do
@@ -5642,129 +5642,8 @@ end
                     })
                 end
 
-                local ConfigName 
-                local ConfigSelected 
-                local ConfigsFolder = Library.Directory .. Library.Folders.Configs .. "/"
-
-                local ConfigsSection = SettingsPage:Section({Name = "Profiles", Side = 3}) do
-                    local ConfigsList = ConfigsSection:List({
-                        Flag = "Configs",
-                        Items = { },
-                        Multi = false,
-                        Callback = function(Value)
-                            ConfigSelected = Value
-                        end
-                    })
-
-                    ConfigsSection:Textbox({
-                        Name = "Config name",
-                        Flag = "ConfigName",
-                        Placeholder = "Config name",
-                        Callback = function(Value)
-                            ConfigName = Value 
-                        end
-                    })
-
-                    ConfigsSection:Button({
-                        Name = "Create",
-                        Callback = function()
-                            if ConfigName then 
-                                if ConfigName == "" then 
-                                    return
-                                end
-
-                                if isfile(ConfigsFolder .. ConfigName .. ".json") then 
-                                    Library:Notification("Config with the name "..ConfigName.." already exists", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-
-                                writefile(ConfigsFolder .. ConfigName .. ".json", Library:GetConfig())
-                                Library:GetConfigsList(ConfigsList)
-                                Library:Notification("Created config "..ConfigName, 3, Library.Theme.Accent)
-                            end
-                        end
-                    })
-
-                    ConfigsSection:Button({
-                        Name = "Load",
-                        Callback = function()
-                            if ConfigSelected then 
-                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
-                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-
-                                local Success, Error = Library:LoadConfig(readfile(ConfigsFolder .. ConfigSelected .. ".json"))
-
-                                if Success then 
-                                    Library:Notification("Loaded config "..ConfigSelected .. " succesfully", 3, Library.Theme.Accent)
-                                else
-                                    Library:Notification("Failed to load config " .. tostring(ConfigSelected) .. " report this to the devs: " .. tostring(Error or "unknown error"), 3, Color3.fromRGB(255, 0, 0))
-                                end
-                            end
-                        end
-                    })
-
-                    ConfigsSection:Button({
-                        Name = "Delete",
-                        Callback = function()
-                            if ConfigSelected then 
-                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
-                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-
-                                delfile(ConfigsFolder .. ConfigSelected .. ".json")
-                                Library:GetConfigsList(ConfigsList)
-                                Library:Notification("Deleted config "..ConfigSelected, 3, Library.Theme.Accent)
-                            end
-                        end
-                    })
-
-                    ConfigsSection:Button({
-                        Name = "Overwrite",
-                        Callback = function()
-                            if ConfigSelected then 
-                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
-                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-
-                                writefile(ConfigsFolder .. ConfigSelected .. ".json", Library:GetConfig())
-                                Library:Notification("Overwrote config "..ConfigSelected, 3, Library.Theme.Accent)
-                            end
-                        end
-                    })
-
-                    Library:GetConfigsList(ConfigsList)
-                end
-
-                local AutoloadSection = SettingsPage:Section({Name = "Autoload", Side = 3}) do
-                    AutoloadSection:Button({
-                        Name = "Set selected as autoload",
-                        Callback = function()
-                            if ConfigSelected then 
-                                if not isfile(ConfigsFolder .. ConfigSelected .. ".json") then
-                                    Library:Notification("Config does not exist", 3, Color3.fromRGB(255, 0, 0))
-                                    return
-                                end
-
-                                writefile(Library.Directory .. "/autoload.json", readfile(ConfigsFolder .. ConfigSelected .. ".json"))
-                                Library:Notification("Set config "..ConfigSelected.." as autoload", 3, Library.Theme.Accent)
-                            end
-                        end
-                    })
-
-                    AutoloadSection:Button({
-                        Name = "Remove autoload",
-                        Callback = function()
-                            writefile(Library.Directory .. "/autoload.json", "")
-                            Library:Notification("Removed autoload", 3, Library.Theme.Accent)
-                        end
-                    })
-                end
-
-                -- Autoload executado pelo script principal após a construção completa da UI.
+                SaveManager:BuildConfigSection(SettingsPage)
+                SaveManager:LoadAutoloadConfig()
             end
         end
     end
