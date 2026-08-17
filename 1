@@ -5469,8 +5469,7 @@ end
                         if type(val) == "table" and val.Color then
                             pcall(Library.SetFlags[option.idx], Color3.fromHex(val.Color), val.Alpha)
                         else
-                            -- Passamos true como segundo argumento para ignorar o callback e não ativar as funções sozinho
-                            pcall(Library.SetFlags[option.idx], val, true)
+                            pcall(Library.SetFlags[option.idx], val)
                         end
                     end)
                 end
