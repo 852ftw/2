@@ -3136,6 +3136,7 @@ end
             end)
 
             Window:Center()
+            Library.MainWindow = Window
             return setmetatable(Window, Library)
         end
 
@@ -5630,7 +5631,13 @@ end
     end
 
         Library.Init = function(Self)
-            local SettingsPage = Self:Page({Name = "settings"}) do 
+            local target = (Self ~= Library and Self) or Library.MainWindow
+            if not target then 
+                warn("[Library] Init failed: No window found. Please create a window before calling Init.")
+                return 
+            end
+
+            local SettingsPage = target:Page({Name = "settings"}) do 
                 local ThemingSection = SettingsPage:Section({Name = "Theming", Side = 1}) do
                     ThemingSection:Dropdown({
                         Name = "Theme Preset",
