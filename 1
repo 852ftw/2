@@ -97,16 +97,24 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 gethui = gethui or function() return CoreGui end
 
 -- Acesso seguro aos wrappers da library.
-local function SafeWrapperInstance(wrapper)
-    if type(wrapper) ~= "table" then
-        return nil
+    local function SafeWrapperInstance(wrapper)
+        -- Aceita tanto o wrapper da library quanto um Instance bruto.
+        -- Isso evita tentar ler a propriedade protegida `Instance` de um
+        -- Roblox Instance quando algum componente foi normalizado externamente.
+        if typeof(wrapper) == "Instance" then
+            return wrapper
+        end
+
+        if type(wrapper) ~= "table" then
+            return nil
+        end
+
+        local ok, object = pcall(rawget, wrapper, "Instance")
+        if not ok or typeof(object) ~= "Instance" then
+            return nil
+        end
+        return object
     end
-    local ok, object = pcall(rawget, wrapper, "Instance")
-    if not ok or typeof(object) ~= "Instance" then
-        return nil
-    end
-    return object
-end
 
 local function SafeProperty(object, property, value)
     if typeof(object) ~= "Instance" then
@@ -1723,7 +1731,7 @@ Library.CreateKeybind = function(Self, Data)
             Name = "\0",
             FontFace = Library.Font,
             TextSize = Library.FontSize,
-            Parent = Data.Parent.Instance,
+            Parent = SafeWrapperInstance(Data.Parent),
             TextColor3 = Color3.fromRGB(0, 0, 0),
             Text = "",
             AutoButtonColor = false,
@@ -1735,7 +1743,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIPadding", {
             Name = "\0",
-            Parent = Items["KeyButtonOutline"].Instance,
+            Parent = SafeWrapperInstance(Items["KeyButtonOutline"]),
             PaddingTop = UDim.new(0, 1),
             PaddingBottom = UDim.new(0, 1),
             PaddingRight = UDim.new(0, 1),
@@ -1746,7 +1754,7 @@ Library.CreateKeybind = function(Self, Data)
             Name = "\0",
             FontFace = Library.Font,
             TextSize = Library.FontSize,
-            Parent = Items["KeyButtonOutline"].Instance,
+            Parent = SafeWrapperInstance(Items["KeyButtonOutline"]),
             TextColor3 = Library.Theme["Text"],
             Text = "none",
             AutoButtonColor = false,
@@ -1759,7 +1767,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIGradient", {
             Name = "\0",
-            Parent = Items["KeyButton"].Instance,
+            Parent = SafeWrapperInstance(Items["KeyButton"]),
             Rotation = 90,
             Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -1769,7 +1777,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIPadding", {
             Name = "\0",
-            Parent = Items["KeyButton"].Instance,
+            Parent = SafeWrapperInstance(Items["KeyButton"]),
             PaddingBottom = UDim.new(0, 2),
             PaddingRight = UDim.new(0, 5),
             PaddingLeft = UDim.new(0, 6)
@@ -1779,7 +1787,7 @@ Library.CreateKeybind = function(Self, Data)
             Name = "\0",
             FontFace = Library.Font,
             TextSize = Library.FontSize,
-            Parent = Library.Holder.Instance,
+            Parent = SafeWrapperInstance(Library.Holder),
             Visible = false,
             TextColor3 = Color3.fromRGB(0, 0, 0),
             Text = "",
@@ -1793,7 +1801,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIStroke", {
             Name = "\0",
-            Parent = Items["KeybindWindow"].Instance,
+            Parent = SafeWrapperInstance(Items["KeybindWindow"]),
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
             LineJoinMode = Enum.LineJoinMode.Miter,
             Color = Library.Theme["Border"],
@@ -1802,7 +1810,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIStroke", {
             Name = "\0",
-            Parent = Items["KeybindWindow"].Instance,
+            Parent = SafeWrapperInstance(Items["KeybindWindow"]),
             ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
             LineJoinMode = Enum.LineJoinMode.Miter,
             Color = Library.Theme["Outline"]
@@ -1810,7 +1818,7 @@ Library.CreateKeybind = function(Self, Data)
         
         Library:Create("UIPadding", {
             Name = "\0",
-            Parent = Items["KeybindWindow"].Instance,
+            Parent = SafeWrapperInstance(Items["KeybindWindow"]),
             PaddingTop = UDim.new(0, 8),
             PaddingBottom = UDim.new(0, 8),
             PaddingRight = UDim.new(0, 8),
@@ -1819,7 +1827,7 @@ Library.CreateKeybind = function(Self, Data)
 
         Library:Create("UIListLayout", {
             Name = "\0",
-            Parent = Items["KeybindWindow"].Instance,
+            Parent = SafeWrapperInstance(Items["KeybindWindow"]),
             Padding = UDim.new(0, 8)
         })                
         
@@ -1833,8 +1841,8 @@ Library.CreateKeybind = function(Self, Data)
     end)
 
     local Debounce = false
-    local KeybindWindow = Items["KeybindWindow"].Instance
-    local KeyButton = Items["KeyButton"].Instance
+    local KeybindWindow = SafeWrapperInstance(Items["KeybindWindow"])
+    local KeyButton = SafeWrapperInstance(Items["KeyButton"])
 
     local IsSettings = Data.Section and Data.Section.IsSettings
 
@@ -2073,11 +2081,17 @@ Library.CreateKeybind = function(Self, Data)
         if enumItem then
             Keybind.Key = enumItem.Name
             Keybind.Value = enumItem.Name
-            Items["KeyButton"].Instance.Text = enumItem.Name:lower()
+            local KeyButtonObject = SafeWrapperInstance(Items["KeyButton"])
+            if KeyButtonObject then
+                KeyButtonObject.Text = enumItem.Name:lower()
+            end
         elseif key ~= nil then
             Keybind.Key = ""
             Keybind.Value = ""
-            Items["KeyButton"].Instance.Text = "none"
+            local KeyButtonObject = SafeWrapperInstance(Items["KeyButton"])
+            if KeyButtonObject then
+                KeyButtonObject.Text = "none"
+            end
         end
 
         Keybind:SetMode()
@@ -2091,7 +2105,10 @@ Library.CreateKeybind = function(Self, Data)
     Items["KeyButton"]:Connect("MouseButton1Click", function()
         Keybind.Picking = true 
 
-        Items["KeyButton"].Instance.Text = ". . ."
+        local KeyButtonObject = SafeWrapperInstance(Items["KeyButton"])
+        if KeyButtonObject then
+            KeyButtonObject.Text = ". . ."
+        end
 
         local InputBegan
         InputBegan = UserInputService.InputBegan:Connect(function(Input)
@@ -2482,11 +2499,15 @@ end
                 KeybindList:SetVisibility(SavedVisibility)
             end
             local function GetKeybindTextWidth(Object)
-                local TextObject = Object.Instance
+                local TextObject = SafeWrapperInstance(Object)
+                if not TextObject then
+                    return 1
+                end
+
                 local Width = TextObject.TextBounds.X
                 local Success, Measured = pcall(function()
                     return TextService:GetTextSize(
-                        tostring(TextObject.Text),
+                        tostring(TextObject.Text or ""),
                         TextObject.TextSize,
                         Enum.Font.SourceSans,
                         Vector2.new(10000, 10000)
@@ -2504,45 +2525,57 @@ end
                 for Index, Value in KeybindList.Keys do
                     if Value.Showing then
                         local RowHeight = 14
-                        local TextWidth = GetKeybindTextWidth(Value.Object)
-                        Value.Object.Instance.Visible = true
-                        Width = math.max(Width, TextWidth)
-                        Value.Object:Tween({Position = UDim2.new(0, 8, 0, Y), Size = UDim2.new(0, TextWidth, 0, RowHeight), TextTransparency = 0}, KeybindTweenInfo)
-                        Y += RowHeight + 4
-                        Count += 1
+                        local TextObject = SafeWrapperInstance(Value.Object)
+                        if TextObject then
+                            local TextWidth = GetKeybindTextWidth(TextObject)
+                            TextObject.Visible = true
+                            Width = math.max(Width, TextWidth)
+                            Library:Tween({
+                                Position = UDim2.new(0, 8, 0, Y),
+                                Size = UDim2.new(0, TextWidth, 0, RowHeight),
+                                TextTransparency = 0
+                            }, KeybindTweenInfo, TextObject)
+                            Y += RowHeight + 4
+                            Count += 1
+                        end
                     end
                 end
 
 
                 local TargetHeight = Count > 0 and math.max(25, Y + 5) or 25
 
-                Items["Content"].Instance.Size = UDim2.new(0, Width, 0, TargetHeight)
-        
-                Items["Inline"]:Tween({Size = UDim2.new(0, Width + 14, 0, TargetHeight)}, KeybindTweenInfo)
-                Items["KeybindList"]:Tween({Size = UDim2.new(0, Width + 34, 0, TargetHeight + 28)}, KeybindTweenInfo)
+                local ContentObject = SafeWrapperInstance(Items["Content"])
+                if ContentObject then
+                    ContentObject.Size = UDim2.new(0, Width, 0, TargetHeight)
+                end
 
-                local ActiveKeys = { }
+                Library:Tween({Size = UDim2.new(0, Width + 14, 0, TargetHeight)}, KeybindTweenInfo, SafeWrapperInstance(Items["Inline"]))
+                Library:Tween({Size = UDim2.new(0, Width + 34, 0, TargetHeight + 28)}, KeybindTweenInfo, SafeWrapperInstance(Items["KeybindList"]))
 
-                for Index, Value in KeybindList.Keys do
-                    if Value.Configured and Value.Showing then
-                        table.insert(ActiveKeys, Value.Object.Instance.Text)
+                local ActiveCount = 0
+                for _, Value in KeybindList.Keys do
+                    if Value.Configured and Value.Showing and SafeWrapperInstance(Value.Object) then
+                        ActiveCount += 1
                     end
                 end
-        
-                if #ActiveKeys == 0 or not KeybindList.Enabled then
-                    Items["KeybindList"].Instance.Visible = false
-                else
-                    Items["KeybindList"].Instance.Visible = true
+
+                local ListObject = SafeWrapperInstance(Items["KeybindList"])
+                if ListObject then
+                    ListObject.Visible = ActiveCount > 0 and KeybindList.Enabled
                 end
             end
         
             function KeybindList:Add(Name, Mode, Key)
+                Name = tostring(Name or "")
+                Mode = tostring(Mode or "")
+                Key = tostring(Key or "")
+
                 local NewKeyText = Library:Create("TextLabel", {
-                    Parent = Items["Content"].Instance, 
+                    Parent = SafeWrapperInstance(Items["Content"]), 
                     FontFace = Library.Font, 
                     TextSize = Library.FontSize, 
                     TextColor3 = Library.Theme["Text"], 
-                    Text = Name .. " - " .. Mode .. " [" .. Key .. "]", 
+                    Text = Name .. " - " .. Mode .. " [" .. Key .. "]",
                     BackgroundTransparency = 1, 
                     BorderSizePixel = 0, 
                     Size = UDim2.new(0, 0, 0, 14), 
@@ -2579,21 +2612,24 @@ end
                 local function ApplyKeybindColor()
                     local ThemeKey = NewKey.Active and "Accent" or "Inactive Text"
                     local Color = Library.Theme[ThemeKey] or Library.Theme["Text"]
-                    if Color then
-                        NewKeyText.Instance.TextColor3 = Color
+                    local TextObject = SafeWrapperInstance(NewKeyText)
+                    if TextObject and Color then
+                        TextObject.TextColor3 = Color
                     end
-                    NewKey.Object:ChangeItemTheme({TextColor3 = ThemeKey})
+                    if type(NewKey.Object) == "table" then
+                        NewKey.Object:ChangeItemTheme({TextColor3 = ThemeKey})
+                    end
                 end
 
                 function NewKey:Set(Name, Mode, Key)
-                    NewKey.Object.Instance.Text = Name .. " - " .. Mode .. " [" .. Key .. "]"
+                    local TextObject = SafeWrapperInstance(NewKey.Object)
+                    if not TextObject then
+                        return
+                    end
+
+                    TextObject.Text = tostring(Name or "") .. " - " .. tostring(Mode or "") .. " [" .. tostring(Key or "") .. "]"
                     ApplyKeybindColor()
                     KeybindList:UpdateSize()
-                    task.defer(function()
-                        if NewKey.Showing then
-                            KeybindList:UpdateSize()
-                        end
-                    end)
                 end
 
 
@@ -2602,9 +2638,15 @@ end
                     ApplyKeybindColor()
                     local ShouldShow = NewKey.Configured and CanShow
 
+                    local TextObject = SafeWrapperInstance(NewKeyText)
+                    if not TextObject then
+                        NewKey.Showing = false
+                        return
+                    end
+
                     if NewKey.Showing == ShouldShow then
                         if ShouldShow then
-                            NewKeyText.Instance.Visible = true
+                            TextObject.Visible = true
                         end
                         return
                     end
@@ -2612,23 +2654,24 @@ end
                     NewKey.Showing = ShouldShow
         
                     if ShouldShow then
-                        NewKeyText.Instance.Visible = true
-                        NewKeyText.Instance.Position = UDim2.new(0, 0, 0, NewKeyText.Instance.Position.Y.Offset)
-                        NewKeyText.Instance.TextTransparency = 1
+                        TextObject.Visible = true
+                        TextObject.Position = UDim2.new(0, 0, 0, TextObject.Position.Y.Offset)
+                        TextObject.TextTransparency = 1
                         KeybindList:UpdateSize()
-                        task.defer(function()
-                            if NewKey.Showing then
-                                KeybindList:UpdateSize()
-                            end
-                        end)
                     else
-                        NewKeyText:Tween({Position = UDim2.new(0, 0, 0, NewKeyText.Instance.Position.Y.Offset), TextTransparency = 1}, KeybindTweenInfo)
+                        Library:Tween({
+                            Position = UDim2.new(0, 0, 0, TextObject.Position.Y.Offset),
+                            TextTransparency = 1
+                        }, KeybindTweenInfo, TextObject)
         
                         KeybindList:UpdateSize()
         
                         task.delay(KeybindTweenInfo.Time, function()
                             if not NewKey.Showing then
-                                NewKeyText.Instance.Visible = false
+                                local CurrentObject = SafeWrapperInstance(NewKeyText)
+                                if CurrentObject then
+                                    CurrentObject.Visible = false
+                                end
                             end
                         end)
                     end
@@ -2649,14 +2692,16 @@ end
         local NotifTweenInfo = TweenInfo.new(Library.NotifAnimation.Time, Enum.EasingStyle[Library.NotifAnimation.Style], Enum.EasingDirection[Library.NotifAnimation.Direction])
 
         Library.Notification = function(Self, Name, Duration, Color)
-            Duration = Duration or 5
-            local UseAccentColor = Color == nil or Color == Library.Theme.Accent
-            Color = Color or Library.Theme.Accent
+            Name = tostring(Name or "")
+            Duration = math.max(0, tonumber(Duration) or 5)
+            local UseThemeAccent = Color == nil
+            Color = typeof(Color) == "Color3" and Color or Library.Theme["Accent"]
         
             local Notification = {
                 Duration = Duration,
+                Color = Color,
+                UseThemeAccent = UseThemeAccent,
                 Removing = false,
-                AccentColor = UseAccentColor,
                 Items = {}
             }
         
@@ -2669,7 +2714,7 @@ end
                     local Item = NotificationData
                         and NotificationData.Items
                         and NotificationData.Items["Notification"]
-                    local Object = Item and Item.Instance
+                    local Object = SafeWrapperInstance(Item)
                     Size = Object and Object.AbsoluteSize
                 end)
 
@@ -2695,8 +2740,9 @@ end
                     local Item = Value
                         and Value.Items
                         and Value.Items["Notification"]
+                    local NotificationObject = SafeWrapperInstance(Item)
 
-                    if not Size or not Item then
+                    if not Size or not NotificationObject then
                         table.insert(InvalidNotifications, Index)
                         continue
                     end
@@ -2714,9 +2760,7 @@ end
                         end
                     end
 
-                    pcall(function()
-                        Item:Tween({Position = UDim2.new(0, X, 0, Y)}, NotifTweenInfo)
-                    end)
+                    Library:Tween({Position = UDim2.new(0, X, 0, Y)}, NotifTweenInfo, NotificationObject)
                 end
 
                 -- Remove entradas cuja GUI já foi destruída ou não pode ser acessada.
@@ -2785,6 +2829,7 @@ end
                     AutomaticSize = Enum.AutomaticSize.XY
                 }):AddToTheme({TextColor3 = "Text"})
         
+                local LinerTheme = UseThemeAccent and "Accent" or function() return Color end
                 Items["Liner"] = Library:Create("Frame", {
                     Name = "\0",
                     Parent = Items["Notification"].Instance,
@@ -2792,9 +2837,7 @@ end
                     Size = UDim2.new(0, 1, 1, 0),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Color
-                }):AddToTheme({BackgroundColor3 = function()
-                    return Notification.AccentColor and Library.Theme["Accent"] or Color
-                end})
+                }):AddToTheme({BackgroundColor3 = LinerTheme})
         
                 Items["DurationLiner"] = Library:Create("Frame", {
                     Name = "\0",
@@ -2803,34 +2846,20 @@ end
                     Size = UDim2.new(1, 16, 0, 1),
                     BorderSizePixel = 0,
                     BackgroundColor3 = Color
-                }):AddToTheme({BackgroundColor3 = function()
-                    return Notification.AccentColor and Library.Theme["Accent"] or Color
-                end})
+                }):AddToTheme({BackgroundColor3 = LinerTheme})
         
                 Notification.Items = Items
-
-                function Notification:UpdateAccentColor()
-                    if not Notification.AccentColor then
-                        return
-                    end
-
-                    local Accent = Library.Theme["Accent"]
-                    if not Accent then
-                        return
-                    end
-
-                    for _, Item in {Items["Liner"], Items["DurationLiner"]} do
-                        if Item and Item.Instance then
-                            Item.Instance.BackgroundColor3 = Accent
-                        end
-                    end
-                end
             end
         
-            local FadeNotification = function(Transparency) -- cant use fadedescendants because that one saves the transparency and it breaks and looks really gay 
-                Items["Notification"]:Tween({BackgroundTransparency = Transparency}, NotifTweenInfo)
+            local FadeNotification = function(Transparency)
+                local NotificationObject = SafeWrapperInstance(Items["Notification"])
+                if not NotificationObject then
+                    return
+                end
+
+                Library:Tween({BackgroundTransparency = Transparency}, NotifTweenInfo, NotificationObject)
         
-                for _, Value in Items["Notification"].Instance:GetDescendants() do
+                for _, Value in NotificationObject:GetDescendants() do
                     if Value:IsA("TextLabel") then
                         Library:Tween({TextTransparency = Transparency}, NotifTweenInfo, Value)
                     elseif Value:IsA("Frame") then
@@ -2842,18 +2871,26 @@ end
             end
         
             table.insert(Library.Notifications, 1, Notification)
-            Notification:UpdateAccentColor()
         
             task.wait()
         
-            local Width = Items["Notification"].Instance.AbsoluteSize.X
-            local Height = Items["Notification"].Instance.AbsoluteSize.Y
+            local NotificationObject = SafeWrapperInstance(Items["Notification"])
+            if not NotificationObject then
+                local NotificationIndex = table.find(Library.Notifications, Notification)
+                if NotificationIndex then
+                    table.remove(Library.Notifications, NotificationIndex)
+                end
+                return Notification
+            end
+
+            local Width = NotificationObject.AbsoluteSize.X
+            local Height = NotificationObject.AbsoluteSize.Y
         
-            Items["Notification"].Instance.Size = UDim2.new(0, Width, 0, Height)
-            Items["Notification"].Instance.AutomaticSize = Enum.AutomaticSize.None
-            Items["Notification"].Instance.BackgroundTransparency = 1
+            NotificationObject.Size = UDim2.new(0, Width, 0, Height)
+            NotificationObject.AutomaticSize = Enum.AutomaticSize.None
+            NotificationObject.BackgroundTransparency = 1
         
-            for Index, Value in Items["Notification"].Instance:GetDescendants() do
+            for _, Value in NotificationObject:GetDescendants() do
                 if Value:IsA("TextLabel") then
                     Value.TextTransparency = 1
                 elseif Value:IsA("Frame") then
@@ -2866,26 +2903,21 @@ end
             UpdatePositions()
             FadeNotification(0)
         
-            Items["DurationLiner"]:Tween({Size = UDim2.new(0, 0, 0, 1)}, TweenInfo.new(Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out))
-        
-            task.spawn(function()
-                local Tick = tick()
-        
-                while tick() - Tick < Duration and not Notification.Removing do
-                    task.wait(0.05)
+            Library:Tween({Size = UDim2.new(0, 0, 0, 1)}, TweenInfo.new(Duration, Enum.EasingStyle.Linear, Enum.EasingDirection.Out), SafeWrapperInstance(Items["DurationLiner"]))
+
+            local function RemoveNotification()
+                if Notification.Removing then
+                    return
                 end
-        
-                if Notification.Removing then return end
-        
                 Notification.Removing = true
         
-                if not Library then return end 
+                if not Library then
+                    return
+                end
 
-                for Index, Value in Library.Notifications do
-                    if Value == Notification then
-                        table.remove(Library.Notifications, Index)
-                        break
-                    end
+                local NotificationIndex = table.find(Library.Notifications, Notification)
+                if NotificationIndex then
+                    table.remove(Library.Notifications, NotificationIndex)
                 end
         
                 local isRight = Library.NotificationPosition == "Right"
@@ -2896,22 +2928,33 @@ end
                         ViewportSize = CurrentCamera.ViewportSize
                     end
                 end)
+
+                local CurrentObject = SafeWrapperInstance(Items["Notification"])
+                if not CurrentObject then
+                    UpdatePositions()
+                    return
+                end
+
                 local targetX = isRight and (ViewportSize.X + 260) or -(Width + Padding + 20)
-                Items["Notification"]:Tween({Position = UDim2.new(0, targetX, 0, Items["Notification"].Instance.Position.Y.Offset)}, NotifTweenInfo)
+                Library:Tween({
+                    Position = UDim2.new(0, targetX, 0, CurrentObject.Position.Y.Offset)
+                }, NotifTweenInfo, CurrentObject)
 
                 FadeNotification(1)
         
                 task.delay(NotifTweenInfo.Time, function()
                     pcall(function()
-                        local Item = Items["Notification"]
-                        local Object = Item and Item.Instance
+                        local Object = SafeWrapperInstance(Items["Notification"])
                         if Object then
                             Object:Destroy()
                         end
                     end)
                     UpdatePositions()
                 end)
-            end)
+            end
+
+            Notification.Remove = RemoveNotification
+            task.delay(Duration, RemoveNotification)
         
             return Notification
         end
@@ -3117,19 +3160,7 @@ end
             end
 
             Library:Connect(RunService.RenderStepped, function()
-                if Library.AccentRGB then
-                    local hue = (tick() % 5) / 5
-                    local color = Color3.fromHSV(hue, 1, 1)
-                    Library:ChangeTheme("Accent", color)
-                end
-
-                for _, Notification in Library.Notifications do
-                    if Notification and type(Notification.UpdateAccentColor) == "function" then
-                        Notification:UpdateAccentColor()
-                    end
-                end
-
-                if not Library.AnimatedTitle then 
+                if not Library.AnimatedTitle then
                     for Index, Value in Letters do 
                         Value.LetterInstance.Instance.Position = UDim2.new(0, Value.X, 0, Value.Y)
                     end
@@ -3753,9 +3784,7 @@ end
                 end
             end
 
-            Library.SetFlags["AccentRGB"] = function(Value)
-                Library.AccentRGB = Value
-            end
+            
 
             return setmetatable(Toggle, Library)
         end
@@ -5744,19 +5773,7 @@ end
                         end
                     end
 
-                    MenuSection:Toggle({
-                        Name = "Accent RGB",
-                        Flag = "AccentRGB",
-                        Default = false,
-                        Callback = function(Value)
-                            Library.AccentRGB = Value
-                        end
-                    })
-
-                    Library.SetFlags["AccentRGB"] = function(Value)
-                        Library.Flags["AccentRGB"] = Value
-                        Library.AccentRGB = Value
-                    end
+                    
 
                     MenuSection:Toggle({
                         Name = "Animated Title",
